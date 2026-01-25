@@ -11,7 +11,7 @@ import SwiftUI
 struct AmpleItApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootTabView()
         }
     }
 }
