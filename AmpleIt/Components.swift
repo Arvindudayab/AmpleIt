@@ -69,6 +69,7 @@ struct SongCardRow: View {
 struct SongActionsOverlay: View {
     let song: Song
     @Binding var isPresented: Bool
+    @Binding var isBackButtonActive: Bool
     
     var onEdit: (() -> Void)? = nil
     var onDuplicate: (() -> Void)? = nil
@@ -188,7 +189,7 @@ struct SongActionsOverlay: View {
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .edit:
-                    SongEditView()
+                    SongEditView(isBackButtonActive: $isBackButtonActive)
                 }
             }
         }

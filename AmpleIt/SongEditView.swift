@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SongEditView: View {
+    @Binding var isBackButtonActive: Bool
     @Environment(\.dismiss) private var dismiss
 
     // MARK: - Editable Fields (local draft state)
@@ -53,14 +54,20 @@ struct SongEditView: View {
         .background(
             Color("AppBackground")
                 .ignoresSafeArea())
+        .onAppear {
+            isBackButtonActive = true
+        }
         .onDisappear {
             showArtworkOverlay = false
+            isBackButtonActive = false
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    // Discard changes
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+                        isBackButtonActive = false
+                    }
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
@@ -101,7 +108,7 @@ struct SongEditView: View {
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(Color.primary.opacity(0.06))
 
                 Group {
                     if let artworkImage {
@@ -118,7 +125,7 @@ struct SongEditView: View {
                     if showArtworkOverlay {
                         // Dim overlay (tap anywhere on the dim area to dismiss)
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(Color.black.opacity(0.25))
+                            .fill(Color("opposite").opacity(0.25))
                             .onTapGesture {
                                 withAnimation(.easeInOut(duration: 0.15)) {
                                     showArtworkOverlay = false
@@ -296,7 +303,15 @@ private struct LevelSlider: View {
 }
 
 #Preview("Song Edit") {
-    NavigationStack {
-        SongEditView()
+    SongEditPreviewWrapper()
+}
+
+private struct SongEditPreviewWrapper: View {
+    @State private var isBackButtonActive: Bool = true
+
+    var body: some View {
+        NavigationStack {
+            SongEditView(isBackButtonActive: $isBackButtonActive)
+        }
     }
 }

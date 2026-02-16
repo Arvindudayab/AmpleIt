@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SongLibraryView: View {
     @Binding var isSidebarOpen: Bool
+    @Binding var isBackButtonActive: Bool
     let chromeNS: Namespace.ID
     let currentTab: AppTab
 
@@ -73,7 +74,7 @@ struct SongLibraryView: View {
                         isPresented: Binding(
                             get: { actionsSong != nil },
                             set: { newValue in if !newValue { actionsSong = nil } }
-                        ),
+                        ), isBackButtonActive: $isBackButtonActive,
                         onEdit: { /* later */ },
                         onAddToPlaylist: { /* later */ },
                         onDelete: { /* later */ }
@@ -86,10 +87,19 @@ struct SongLibraryView: View {
 }
 
 #Preview("Songs") {
-    PreviewHarness { ctx in
+    SongLibraryPreviewWrapper()
+}
+
+private struct SongLibraryPreviewWrapper: View {
+    @State private var isSidebarOpen: Bool = false
+    @State private var isBackButtonActive: Bool = false
+    @Namespace private var chromeNS
+
+    var body: some View {
         SongLibraryView(
-            isSidebarOpen: ctx.isSidebarOpen,
-            chromeNS: ctx.chromeNS,
+            isSidebarOpen: $isSidebarOpen,
+            isBackButtonActive: $isBackButtonActive,
+            chromeNS: chromeNS,
             currentTab: .songs
         )
     }
