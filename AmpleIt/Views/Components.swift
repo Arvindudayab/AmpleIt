@@ -42,8 +42,12 @@ struct SongCardRow: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.primary)
                     .padding(10)
+                    .background(
+                        Circle()
+                            .fill(Color.primary.opacity(0.06))
+                    )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressScaleButtonStyle())
             .accessibilityLabel("More actions")
         }
         .padding(12)
@@ -69,9 +73,11 @@ struct SongCardRow: View {
 struct SongActionsOverlay: View {
     let song: Song
     @Binding var isPresented: Bool
+    @Binding var isBackButtonActive: Bool
     
     var onEdit: (() -> Void)? = nil
     var onDuplicate: (() -> Void)? = nil
+    var onAddToQueue: (() -> Void)? = nil
     var onAddToPlaylist: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
@@ -150,6 +156,13 @@ struct SongActionsOverlay: View {
                         onDuplicate?()
                     }
                     Divider().opacity(0.6)
+                    actionRow(title: "Add to Queue", systemImage: "text.line.first.and.arrowtriangle.forward") {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                            isPresented = false
+                        }
+                        onAddToQueue?()
+                    }
+                    Divider().opacity(0.6)
                     actionRow(title: "Add to Playlist", systemImage: "text.badge.plus") {
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                             isPresented = false
@@ -188,7 +201,7 @@ struct SongActionsOverlay: View {
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .edit:
-                    SongEditView()
+                    SongEditView(isBackButtonActive: $isBackButtonActive)
                 }
             }
         }
@@ -213,6 +226,14 @@ struct SongActionsOverlay: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct PressScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 

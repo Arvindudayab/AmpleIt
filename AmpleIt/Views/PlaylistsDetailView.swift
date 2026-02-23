@@ -57,12 +57,22 @@ struct PlaylistDetailView: View {
 
                         // Track list
                         VStack(spacing: 0) {
-                            ForEach(songs) { song in
-                                PlaylistTrackRow(song: song)
-                                Divider().opacity(0.5)
+                            if songs.isEmpty {
+                                VStack(spacing: 8) {
+                                    Text("No songs yet.")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("Add songs to start building this playlist.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                            } else {
+                                ForEach(songs) { song in
+                                    PlaylistTrackRow(song: song)
+                                    Divider().opacity(0.5)
+                                }
                             }
-
-                            //PlaylistAddMusicRow()
                         }
                         .padding(.top, 10)
                         .padding(.horizontal, AppLayout.horizontalPadding)
@@ -81,20 +91,18 @@ struct PlaylistDetailView: View {
                 }
 
                 FloatingAddButton(systemImage: "plus") {
-                    print("Create playlist")
+                    // Non-functional add button (placeholder)
                 }
                 .padding(.trailing, AppLayout.horizontalPadding)
                 .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
             }
             
             .navigationBarBackButtonHidden(true)
+            .simultaneousGesture(backSwipeGesture)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
-                            isBackButtonActive = false
-                        }
-                        dismiss()
+                        handleBack()
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
@@ -116,23 +124,29 @@ struct PlaylistDetailView: View {
             .onDisappear {
                 isBackButtonActive = false
             }
-            .task {
-                songs = Self.makeSongs(for: playlist)
-            }
         }
+    }
+
+    private var backSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 20, coordinateSpace: .global)
+            .onEnded { value in
+                guard value.startLocation.x < 28 else { return }
+                guard value.translation.width > 100 else { return }
+                guard abs(value.translation.height) < 60 else { return }
+                handleBack()
+            }
+    }
+
+    private func handleBack() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+            isBackButtonActive = false
+        }
+        dismiss()
     }
 
     private var estimatedMinutes: Int {
         // Simple estimate since Song doesn’t yet have duration
         max(1, songs.count * 3)
-    }
-
-    // MARK: - Demo song source (deterministic until you have real playlist storage)
-    private static func makeSongs(for playlist: Playlist) -> [Song] {
-        var rng = SeededGenerator(seed: UInt64(abs(playlist.id.uuidString.hashValue)))
-        let shuffled = MockData.songs.shuffled(using: &rng)
-        let n = max(0, min(playlist.count, shuffled.count))
-        return Array(shuffled.prefix(n))
     }
 }
 
@@ -213,7 +227,7 @@ private struct PlaylistDetailPreviewWrapper: View {
     var body: some View {
         NavigationStack {
             PlaylistDetailView(
-                playlist: MockData.playlists.first!,
+                playlist: Playlist(id: UUID(), name: "Workout Mix", count: 0),
                 isSidebarOpen: $isSidebarOpen,
                 chromeNS: chromeNS,
                 isBackButtonActive: $isBackButtonActive

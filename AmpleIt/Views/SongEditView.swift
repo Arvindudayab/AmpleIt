@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SongEditView: View {
     @Environment(\.dismiss) private var dismiss
+    @Binding var isBackButtonActive: Bool
 
     // MARK: - Editable Fields (local draft state)
     @State private var title: String = "Midnight Echoes"
@@ -53,15 +54,20 @@ struct SongEditView: View {
         .background(
             Color("AppBackground")
                 .ignoresSafeArea())
+        .simultaneousGesture(backSwipeGesture)
+        .onAppear {
+            isBackButtonActive = true
+        }
         .onDisappear {
             showArtworkOverlay = false
+            isBackButtonActive = false
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
                     // Discard changes
-                    dismiss()
+                    handleBack()
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .semibold))
@@ -79,7 +85,7 @@ struct SongEditView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     // TODO: persist changes to your model/store
-                    dismiss()
+                    handleBack()
                 } label: {
                     Text("Save")
                         .font(.system(size: 16, weight: .semibold))
@@ -87,6 +93,23 @@ struct SongEditView: View {
                 //.buttonStyle(.plain)
             }
         }
+    }
+
+    private var backSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 20, coordinateSpace: .global)
+            .onEnded { value in
+                guard value.startLocation.x < 28 else { return }
+                guard value.translation.width > 100 else { return }
+                guard abs(value.translation.height) < 60 else { return }
+                handleBack()
+            }
+    }
+
+    private func handleBack() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+            isBackButtonActive = false
+        }
+        dismiss()
     }
 
     // MARK: - Sections
@@ -297,6 +320,6 @@ private struct LevelSlider: View {
 
 #Preview("Song Edit") {
     NavigationStack {
-        SongEditView()
+        SongEditView(isBackButtonActive: .constant(false))
     }
 }

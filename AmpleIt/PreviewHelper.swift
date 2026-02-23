@@ -12,6 +12,7 @@ struct PreviewHarness<Content: View>: View {
     @State var isSidebarOpen: Bool = false
     @State var selectedTab: AppTab = .home
     @State var isPlaying: Bool = true
+    @State var isBackButtonActive: Bool = false
 
     @Namespace var chromeNS
 
@@ -21,6 +22,7 @@ struct PreviewHarness<Content: View>: View {
         let isSidebarOpen: Binding<Bool>
         let selectedTab: Binding<AppTab>
         let isPlaying: Binding<Bool>
+        let isBackButtonActive: Binding<Bool>
         let chromeNS: Namespace.ID
     }
 
@@ -30,6 +32,7 @@ struct PreviewHarness<Content: View>: View {
                 isSidebarOpen: $isSidebarOpen,
                 selectedTab: $selectedTab,
                 isPlaying: $isPlaying,
+                isBackButtonActive: $isBackButtonActive,
                 chromeNS: chromeNS
             )
         )

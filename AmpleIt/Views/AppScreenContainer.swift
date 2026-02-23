@@ -13,6 +13,8 @@ struct AppScreenContainer<Content: View>: View {
     let chromeNS: Namespace.ID
     var wrapInNavigationStack: Bool = true
     var showsSidebarButton: Bool = true
+    var showsTrailingPlaceholder: Bool = true
+    var trailingToolbar: AnyView? = nil
     @ViewBuilder var content: Content
     
     private var logoLabel: some View {
@@ -61,35 +63,44 @@ struct AppScreenContainer<Content: View>: View {
                 }
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {} label: {
-                    logoLabel
+            if let trailingToolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    trailingToolbar
                 }
-                .disabled(true)
-                .opacity(0)
-                .accessibilityHidden(true)
+            } else if showsTrailingPlaceholder {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {} label: {
+                        logoLabel
+                    }
+                    .disabled(true)
+                    .opacity(0)
+                    .accessibilityHidden(true)
+                }
             }
             ToolbarItem(placement: .principal) {
-                HStack {
-                    Spacer()
-                    Text(title)
-                        .font(.headline.weight(.semibold))
-                        .lineLimit(1)
-                        .matchedGeometryEffect(id: "appTitle", in: chromeNS)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
+                Text(title)
+                    .font(.headline.weight(.semibold))
+                    .lineLimit(1)
+                    .matchedGeometryEffect(id: "appTitle", in: chromeNS)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }
 }
 
 #Preview("AppScreenContainer") {
-    PreviewHarness { ctx in
+    AppScreenContainerPreviewWrapper()
+}
+
+private struct AppScreenContainerPreviewWrapper: View {
+    @State private var isSidebarOpen: Bool = false
+    @Namespace private var chromeNS
+
+    var body: some View {
         AppScreenContainer(
             title: "Preview",
-            isSidebarOpen: ctx.isSidebarOpen,
-            chromeNS: ctx.chromeNS
+            isSidebarOpen: $isSidebarOpen,
+            chromeNS: chromeNS
         ) {
             ScrollView {
                 VStack(spacing: 12) {

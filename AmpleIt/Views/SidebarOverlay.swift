@@ -141,8 +141,8 @@ private struct SidebarCard: View {
             SidebarNavRow(icon: "square.grid.2x2.fill", title: "Playlists", tab: .playlists, selectedTab: $selectedTab) {
                 closeAndSwitch(.playlists)
             }
-            SidebarNavRow(icon: "slider.horizontal.3", title: "Presets", tab: .presets, selectedTab: $selectedTab) {
-                closeAndSwitch(.presets)
+            SidebarNavRow(icon: "sparkles", title: "Amp", tab: .amp, selectedTab: $selectedTab) {
+                closeAndSwitch(.amp)
             }
         }
     }

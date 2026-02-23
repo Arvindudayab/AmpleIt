@@ -8,7 +8,7 @@
 import SwiftUI
 
 enum AppTab: String, CaseIterable, Identifiable {
-    case home, songs, playlists, presets
+    case home, songs, playlists, amp
     var id: String { rawValue }
 
     var title: String {
@@ -16,7 +16,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .home: return "Home"
         case .songs: return "Songs"
         case .playlists: return "Playlists"
-        case .presets: return "Presets"
+        case .amp: return "Amp"
         }
     }
 }
@@ -32,7 +32,7 @@ struct RootTabView: View {
     @State private var isBackButtonActive: Bool = false
 
     @Namespace private var chromeNS
-    @Namespace private var miniPlayerNS
+    @Namespace private var miniPlayerNS 
 
     var body: some View {
         ZStack {
@@ -43,13 +43,15 @@ struct RootTabView: View {
                     HomeView(
                         isSidebarOpen: $isSidebarOpen,
                         chromeNS: chromeNS,
-                        currentTab: .home
+                        currentTab: .home,
+                        isBackButtonActive: $isBackButtonActive
                     )
                 case .songs:
                     SongLibraryView(
                         isSidebarOpen: $isSidebarOpen,
                         chromeNS: chromeNS,
-                        currentTab: .songs
+                        currentTab: .songs,
+                        isBackButtonActive: $isBackButtonActive
                     )
                 case .playlists:
                     PlaylistsView(
@@ -58,11 +60,10 @@ struct RootTabView: View {
                         currentTab: .playlists,
                         isBackButtonActive: $isBackButtonActive
                     )
-                case .presets:
-                    PresetsPlaceholderView(
+                case .amp:
+                    AmpView(
                         isSidebarOpen: $isSidebarOpen,
-                        chromeNS: chromeNS,
-                        currentTab: .presets
+                        chromeNS: chromeNS
                     )
                 }
             }
@@ -227,30 +228,6 @@ struct RootTabView: View {
         }
     }
 }
-
-private struct PresetsPlaceholderView: View {
-    @Binding var isSidebarOpen: Bool
-    let chromeNS: Namespace.ID
-    let currentTab: AppTab
-
-    var body: some View {
-        AppScreenContainer(
-            title: currentTab.title,
-            isSidebarOpen: $isSidebarOpen,
-            chromeNS: chromeNS
-        ) {
-            VStack(spacing: 12) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 36, weight: .semibold))
-                Text("Presets UI goes here.")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-}
-
 
 #Preview {
     RootTabView()
