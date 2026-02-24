@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import PhotosUI
+import UIKit
 
 // This view is referenced by PlaylistsView.swift
 struct PlaylistDetailView: View {
@@ -17,6 +19,8 @@ struct PlaylistDetailView: View {
     
     @State private var artworkImage: Image? = nil
     @State private var showArtworkOverlay: Bool = false
+    @State private var selectedArtworkItem: PhotosPickerItem? = nil
+    @State private var isArtworkPickerPresented: Bool = false
 
     @State private var shuffledSongs: [Song]? = nil
     @Environment(\.dismiss) private var dismiss
@@ -122,6 +126,21 @@ struct PlaylistDetailView: View {
                 isBackButtonActive = false
                 showArtworkOverlay = false
             }
+            .photosPicker(
+                isPresented: $isArtworkPickerPresented,
+                selection: $selectedArtworkItem,
+                matching: .images
+            )
+            .onChange(of: selectedArtworkItem) { _, item in
+                Task {
+                    guard let item,
+                          let data = try? await item.loadTransferable(type: Data.self),
+                          let uiImage = UIImage(data: data) else { return }
+                    await MainActor.run {
+                        artworkImage = Image(uiImage: uiImage)
+                    }
+                }
+            }
             .onChange(of: libraryStore.songs(in: playlist.id).map(\.id)) { _, _ in
                 shuffledSongs = nil
             }
@@ -160,20 +179,20 @@ struct PlaylistDetailView: View {
                         artworkImage
                             .resizable()
                             .scaledToFill()
+                            .frame(width: 320, height: 320)
+                            .clipped()
                     } else {
                         ArtworkPlaceholder(seed: playlist.id.uuidString)
                     }
                 }
-                .aspectRatio(1, contentMode: .fill)
-                .frame(maxWidth: 320)
+                .frame(width: 320, height: 320)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 // Overlay shown only after tap
                 if showArtworkOverlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(Color.black.opacity(0.28))
-                        .frame(maxWidth: 320)
-                        .aspectRatio(1, contentMode: .fill)
+                        .frame(width: 320, height: 320)
                         .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.15)) {
                                 showArtworkOverlay = false
@@ -181,17 +200,10 @@ struct PlaylistDetailView: View {
                         }
 
                     Button {
-                        // TODO: Present a PhotosPicker / file picker.
-                        // For now, toggle a mock image so the flow is testable.
-                        if artworkImage == nil {
-                            artworkImage = Image(systemName: "photo")
-                        } else {
-                            artworkImage = nil
-                        }
-
                         withAnimation(.easeInOut(duration: 0.15)) {
                             showArtworkOverlay = false
                         }
+                        isArtworkPickerPresented = true
                     } label: {
                         Text("Replace")
                             .font(.system(size: 18, weight: .semibold))
@@ -218,71 +230,6 @@ struct PlaylistDetailView: View {
 
     private var currentSongs: [Song] {
         shuffledSongs ?? libraryStore.songs(in: playlist.id)
-    }
-}
-
-private struct PlaylistActionButton: View {
-    let title: String
-    let systemImage: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .semibold))
-                Text(title)
-                    .font(.system(size: 18, weight: .semibold))
-            }
-            .foregroundStyle(.primary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.primary.opacity(0.04),
-                                Color("AppAccent").opacity(0.25)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct PlaylistTrackRow: View {
-    let song: Song
-
-    var body: some View {
-        HStack(spacing: 14) {
-            ArtworkPlaceholder(seed: song.id.uuidString)
-                .frame(width: 56, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(song.title)
-                    .font(.system(size: 20, weight: .regular))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Text(song.artist)
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            Image(systemName: "ellipsis")
-                .font(.system(size: 18, weight: .regular))
-                .foregroundStyle(.primary)
-        }
-        .padding(.vertical, 12)
     }
 }
 

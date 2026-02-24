@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct SongEditView: View {
     @Binding var isBackButtonActive: Bool
@@ -18,6 +20,8 @@ struct SongEditView: View {
     // Artwork: store a picked image; nil means placeholder
     @State private var artworkImage: Image? = nil
     @State private var showArtworkOverlay: Bool = false
+    @State private var selectedArtworkItem: PhotosPickerItem? = nil
+    @State private var isArtworkPickerPresented: Bool = false
 
     // Presets
     private let presets: [String] = ["Default", "Warm", "Bass Boost", "Lo-Fi", "Vocal Clarity"]
@@ -59,6 +63,21 @@ struct SongEditView: View {
         .onDisappear {
             showArtworkOverlay = false
             isBackButtonActive = false
+        }
+        .photosPicker(
+            isPresented: $isArtworkPickerPresented,
+            selection: $selectedArtworkItem,
+            matching: .images
+        )
+        .onChange(of: selectedArtworkItem) { _, item in
+            Task {
+                guard let item,
+                      let data = try? await item.loadTransferable(type: Data.self),
+                      let uiImage = UIImage(data: data) else { return }
+                await MainActor.run {
+                    artworkImage = Image(uiImage: uiImage)
+                }
+            }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -108,7 +127,8 @@ struct SongEditView: View {
     // MARK: - Sections
 
     private var artworkSection: some View {
-        Button {
+        let artworkSize: CGFloat = 220
+        return Button {
             // First tap reveals the overlay (Replace prompt). Actual replacement happens when
             // the user taps the "Replace" button in the overlay.
             withAnimation(.easeInOut(duration: 0.15)) {
@@ -124,11 +144,13 @@ struct SongEditView: View {
                         artworkImage
                             .resizable()
                             .scaledToFill()
+                            .frame(width: artworkSize, height: artworkSize)
+                            .clipped()
                     } else {
                         ArtworkPlaceholder(seed: "edit")
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: artworkSize, height: artworkSize)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .overlay {
                     if showArtworkOverlay {
@@ -143,17 +165,10 @@ struct SongEditView: View {
 
                         // Replace button
                         Button {
-                            // TODO: Present a photo picker or file picker.
-                            // For now, toggle between placeholder and a mock image.
-                            if artworkImage == nil {
-                                artworkImage = Image(systemName: "photo")
-                            } else {
-                                artworkImage = nil
-                            }
-
                             withAnimation(.easeInOut(duration: 0.15)) {
                                 showArtworkOverlay = false
                             }
+                            isArtworkPickerPresented = true
                         } label: {
                             Text("Replace")
                                 .font(.system(size: 18, weight: .semibold))
@@ -169,7 +184,7 @@ struct SongEditView: View {
                     }
                 }
             }
-            .frame(width: 220, height: 220)
+            .frame(width: artworkSize, height: artworkSize)
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .buttonStyle(.plain)
@@ -282,29 +297,6 @@ struct SongEditView: View {
             LevelSlider(title: "Treble", value: $treble, range: -12.0...12.0, format: { String(format: "%+.0f dB", $0) })
         }
         .padding(14)
-    }
-}
-
-// MARK: - Reusable slider row
-private struct LevelSlider: View {
-    let title: String
-    @Binding var value: Double
-    let range: ClosedRange<Double>
-    let format: (Double) -> String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text(format(value))
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-            }
-
-            Slider(value: $value, in: range)
-        }
     }
 }
 

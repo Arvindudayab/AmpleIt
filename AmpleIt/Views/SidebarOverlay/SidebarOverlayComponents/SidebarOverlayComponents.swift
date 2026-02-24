@@ -1,50 +1,6 @@
-//
-//  SidebarOverlay.swift
-//  AmpleIt
-//
-//  Created by Arvind Udayabanu on 12/18/25.
-//
-
 import SwiftUI
 
-struct SidebarOverlay: View {
-    @Binding var isOpen: Bool
-    @Binding var selectedTab: AppTab
-    let chromeNS: Namespace.ID
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .topLeading) {
-
-                if isOpen {
-                    Rectangle()
-                        .fill(Color("AppBackground").opacity(0.1))
-                        .ignoresSafeArea()
-                        .background(.ultraThinMaterial)
-                        .transition(.opacity)
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
-                                isOpen = false
-                            }
-                        }
-                }
-
-                SidebarCard(
-                    isOpen: $isOpen,
-                    selectedTab: $selectedTab,
-                    containerSize: geo.size,
-                    chromeNS: chromeNS
-                )
-                .padding(.leading, 14)
-                .padding(.top, geo.safeAreaInsets.top + 8)
-            }
-        }
-        .allowsHitTesting(isOpen)
-        .animation(.spring(response: 0.42, dampingFraction: 0.88), value: isOpen)
-    }
-}
-
-private struct SidebarCard: View {
+struct SidebarCard: View {
     @Binding var isOpen: Bool
     @Binding var selectedTab: AppTab
     let containerSize: CGSize
@@ -54,10 +10,8 @@ private struct SidebarCard: View {
     private var openHeight: CGFloat { min(containerSize.height * 0.50, 380) }
 
     var body: some View {
-        // The transition and masking are applied to the whole panel.
         if isOpen {
             ZStack(alignment: .topLeading) {
-                // Panel background
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(
                         LinearGradient(
@@ -74,7 +28,6 @@ private struct SidebarCard: View {
                             .strokeBorder(.primary.opacity(0.12), lineWidth: 1)
                     )
 
-                // Content
                 VStack(alignment: .leading, spacing: 14) {
                     header
                     Divider().opacity(0.7)
@@ -86,7 +39,6 @@ private struct SidebarCard: View {
             }
             .frame(width: openWidth, height: openHeight, alignment: .topLeading)
             .shadow(color: .black.opacity(0.12), radius: 18, x: 0, y: 8)
-            // Mask + compositing prevent trailing/ghosting during move transitions.
             .mask(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .compositingGroup()
             .transition(
@@ -101,7 +53,6 @@ private struct SidebarCard: View {
         }
     }
 
-    // MARK: - Header
     private var header: some View {
         HStack(spacing: 10) {
             Image("SoundAlphaV1")
@@ -134,7 +85,6 @@ private struct SidebarCard: View {
         }
     }
 
-    // MARK: - Nav Items
     private var navItems: some View {
         VStack(alignment: .leading, spacing: 6) {
             SidebarNavRow(icon: "house.fill", title: "Home", tab: .home, selectedTab: $selectedTab) {
@@ -152,7 +102,6 @@ private struct SidebarCard: View {
         }
     }
 
-    // MARK: - Footer
     private var footer: some View {
         HStack(spacing: 8) {
             Image(systemName: "sparkles")
@@ -163,7 +112,6 @@ private struct SidebarCard: View {
         .padding(.top, 6)
     }
 
-    // MARK: - Actions
     private func closeAndSwitch(_ tab: AppTab) {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
             selectedTab = tab
@@ -172,7 +120,7 @@ private struct SidebarCard: View {
     }
 }
 
-private struct SidebarNavRow: View {
+struct SidebarNavRow: View {
     let icon: String
     let title: String
     let tab: AppTab
@@ -212,47 +160,5 @@ private struct SidebarNavRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-}
-
-#Preview("Sidebar – Open") {
-    SidebarPreviewWrapper(isOpen: true)
-}
-
-private struct SidebarPreviewWrapper: View {
-    @State var isOpen: Bool
-    @State private var selectedTab: AppTab = .songs
-    @Namespace private var chromeNS
-
-    var body: some View {
-        ZStack {
-            // Background so blur + overlay are visible
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.25),
-                    Color.black.opacity(0.05)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            // Fake app content
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Underlying App Content")
-                    .font(.title2.weight(.semibold))
-                Text("Tap outside the sidebar to dismiss")
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding()
-
-            // Sidebar itself
-            SidebarOverlay(
-                isOpen: $isOpen,
-                selectedTab: $selectedTab,
-                chromeNS: chromeNS
-            )
-        }
     }
 }
