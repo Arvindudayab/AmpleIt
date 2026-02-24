@@ -47,8 +47,7 @@ struct PlaylistsView: View {
     let chromeNS: Namespace.ID
     let currentTab: AppTab
     @Binding var isBackButtonActive: Bool
-    @State private var playlists: [Playlist] = []
-    @State private var createdPlaylists: [CreatedPlaylist] = []
+    @EnvironmentObject private var libraryStore: LibraryStore
     @State private var isCreatePlaylistPresented: Bool = false
     @State private var newPlaylistName: String = ""
     @State private var newPlaylistArtwork: Image? = nil
@@ -68,14 +67,12 @@ struct PlaylistsView: View {
     }
     
     private var allPlaylists: [PlaylistItem] {
-        let base = playlists.map { PlaylistItem(playlist: $0, artwork: nil) }
-        let created = createdPlaylists.map {
+        libraryStore.playlists.map {
             PlaylistItem(
-                playlist: Playlist(id: $0.id, name: $0.name, count: 0),
-                artwork: $0.artwork
+                playlist: $0,
+                artwork: libraryStore.playlistArtwork[$0.id]
             )
         }
-        return base + created
     }
     
     var body: some View {
@@ -184,154 +181,29 @@ struct PlaylistsView: View {
             Text("This action cannot be undone.")
         }
         .sheet(isPresented: $isCreatePlaylistPresented) {
-            createPlaylistForm
+            CreatePlaylistFormSheet(
+                name: $newPlaylistName,
+                artwork: $newPlaylistArtwork,
+                showArtworkOverlay: $showArtworkOverlay,
+                onCreate: createPlaylist,
+                onDone: {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                        isCreatePlaylistPresented = false
+                        showArtworkOverlay = false
+                    }
+                }
+            )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+                .presentationBackground(Color("AppBackground"))
         }
-    }
-
-    private var createPlaylistForm: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    HStack {
-                        Spacer()
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                showArtworkOverlay = true
-                            }
-                        } label: {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color.primary.opacity(0.06))
-
-                                Group {
-                                    if let newPlaylistArtwork {
-                                        newPlaylistArtwork
-                                            .resizable()
-                                            .scaledToFill()
-                                    } else {
-                                        ArtworkPlaceholder(seed: "new-playlist")
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay {
-                                    if showArtworkOverlay {
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(Color.black.opacity(0.25))
-                                            .onTapGesture {
-                                                withAnimation(.easeInOut(duration: 0.15)) {
-                                                    showArtworkOverlay = false
-                                                }
-                                            }
-
-                                        Button {
-                                            if newPlaylistArtwork == nil {
-                                                newPlaylistArtwork = Image(systemName: "photo")
-                                            } else {
-                                                newPlaylistArtwork = nil
-                                            }
-                                            withAnimation(.easeInOut(duration: 0.15)) {
-                                                showArtworkOverlay = false
-                                            }
-                                        } label: {
-                                            Text("Replace")
-                                                .font(.system(size: 16, weight: .semibold))
-                                                .foregroundStyle(.white)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                                .background(
-                                                    Capsule()
-                                                        .fill(Color.black.opacity(0.35))
-                                                )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-                            .aspectRatio(1, contentMode: .fit)
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Replace artwork")
-                        Spacer()
-                    }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .listRowBackground(Color("AppBackground"))
-                } header: {
-                    Text("Artwork")
-                }
-
-                Section {
-                    TextField("Playlist name", text: $newPlaylistName)
-                        .textInputAutocapitalization(.words)
-                        .autocorrectionDisabled(false)
-                        .padding(12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.primary.opacity(0.06))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(.primary.opacity(0.10), lineWidth: 1)
-                        )
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .listRowBackground(Color("AppBackground"))
-                } header: {
-                    Text("Name")
-                }
-
-                Section {
-                    Button {
-                        createPlaylist()
-                    } label: {
-                        Text("Create")
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color("AppAccent").opacity(0.25))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(Color("AppAccent").opacity(0.6), lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(newPlaylistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .listRowBackground(Color("AppBackground"))
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(Color("AppBackground").ignoresSafeArea())
-            .navigationTitle("Create Playlist")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                            isCreatePlaylistPresented = false
-                            showArtworkOverlay = false
-                        }
-                    }
-                }
-            }
-        }
-        .presentationBackground(Color("AppBackground"))
     }
 
     private func createPlaylist() {
         let trimmedName = newPlaylistName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
 
-        createdPlaylists.append(
-            CreatedPlaylist(
-                id: UUID(),
-                name: trimmedName,
-                artwork: newPlaylistArtwork
-            )
-        )
+        _ = libraryStore.createPlaylist(name: trimmedName, artwork: newPlaylistArtwork)
         newPlaylistName = ""
         newPlaylistArtwork = nil
         showArtworkOverlay = false
@@ -350,8 +222,7 @@ struct PlaylistsView: View {
 
     private func deleteSelectedPlaylists() {
         guard !selectedPlaylistIDs.isEmpty else { return }
-        playlists.removeAll { selectedPlaylistIDs.contains($0.id) }
-        createdPlaylists.removeAll { selectedPlaylistIDs.contains($0.id) }
+        libraryStore.deletePlaylists(ids: selectedPlaylistIDs)
         selectedPlaylistIDs.removeAll()
         isSelecting = false
     }
@@ -362,12 +233,6 @@ private struct PlaylistItem: Identifiable {
     let artwork: Image?
 
     var id: UUID { playlist.id }
-}
-
-private struct CreatedPlaylist: Identifiable {
-    let id: UUID
-    let name: String
-    let artwork: Image?
 }
 
 private struct PlaylistCardSelectable: View {
@@ -412,5 +277,6 @@ private struct PlaylistsPreviewWrapper: View {
             currentTab: .playlists,
             isBackButtonActive: $isBackButtonActive
         )
+        .environmentObject(LibraryStore())
     }
 }

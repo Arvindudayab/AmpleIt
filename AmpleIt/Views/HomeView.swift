@@ -33,9 +33,10 @@ struct HomeView: View {
     let chromeNS: Namespace.ID
     let currentTab: AppTab
     @Binding var isBackButtonActive: Bool
+    @EnvironmentObject private var libraryStore: LibraryStore
 
-    private let recentlyAdded = Array(MockData.songs.prefix(5))
-    private let recentlyPlayed = Array(MockData.songs.prefix(5))
+    private let recentlyAddedIDs = Array(MockData.songs.prefix(5)).map(\.id)
+    private let recentlyPlayedIDs = Array(MockData.songs.prefix(5)).map(\.id)
     @State private var actionsSong: Song? = nil
 
     var body: some View {
@@ -49,7 +50,7 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 30) {
                         HomeSection(title: "Recently Added") {
                             VStack(spacing: 10) {
-                                ForEach(recentlyAdded) { song in
+                                ForEach(resolveSongs(for: recentlyAddedIDs)) { song in
                                     SongCardRow(
                                         song: song,
                                         onMore: {
@@ -64,7 +65,7 @@ struct HomeView: View {
 
                         HomeSection(title: "Recently Played") {
                             VStack(spacing: 10) {
-                                ForEach(recentlyPlayed) { song in
+                                ForEach(resolveSongs(for: recentlyPlayedIDs)) { song in
                                     SongCardRow(
                                         song: song,
                                         onMore: {
@@ -92,14 +93,26 @@ struct HomeView: View {
                         ),
                         isBackButtonActive: $isBackButtonActive,
                         onEdit: { /* later */ },
-                        onAddToQueue: { /* later */ },
-                        onAddToPlaylist: { /* later */ },
-                        onDelete: { /* later */ }
+                        onDuplicate: {
+                            libraryStore.duplicate(song: song)
+                        },
+                        onAddToQueue: {
+                            libraryStore.addToQueue(song: song)
+                        },
+                        onAddToPlaylist: { /* handled inside overlay sheet */ },
+                        onDelete: {
+                            libraryStore.delete(songID: song.id)
+                        }
                     )
                     .zIndex(50)
                 }
             }
         }
+    }
+
+    private func resolveSongs(for ids: [UUID]) -> [Song] {
+        let byID = Dictionary(uniqueKeysWithValues: libraryStore.librarySongs.map { ($0.id, $0) })
+        return ids.compactMap { byID[$0] }
     }
 }
 
@@ -119,5 +132,6 @@ private struct HomePreviewWrapper: View {
             currentTab: .home,
             isBackButtonActive: $isBackButtonActive
         )
+        .environmentObject(LibraryStore())
     }
 }

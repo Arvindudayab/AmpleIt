@@ -21,11 +21,12 @@ enum AppTab: String, CaseIterable, Identifiable {
 }
 
 struct RootTabView: View {
+    @EnvironmentObject private var libraryStore: LibraryStore
     @State private var isSidebarOpen = false
     @State private var selectedTab: AppTab = .home
 
     // Mini-player mock state (wire to your real player later)
-    @State private var nowPlaying: Song? = MockData.songs.first
+    @State private var nowPlaying: Song? = nil
     @State private var isPlaying: Bool = true
     
     @State private var isBackButtonActive: Bool = false
@@ -76,7 +77,7 @@ struct RootTabView: View {
             )
             
             // Bottom tint (Option 2): subtle fade behind the mini-player
-            if nowPlaying != nil {
+            if nowPlaying != nil { 
                 LinearGradient(
                     colors: [
                         Color("opposite").opacity(0.0),
@@ -109,14 +110,7 @@ struct RootTabView: View {
                                     ZStack {
                                         Circle()
                                             .fill(
-                                                LinearGradient(
-                                                    colors: [
-                                                        Color("AppBackground"),
-                                                        Color("AppAccent")
-                                                    ],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                            )
+                                                Color("AppBackground")
                                         )
 
                                         Image("SoundAlphaV1")
@@ -145,16 +139,10 @@ struct RootTabView: View {
                                     isPlaying: $isPlaying,
                                     onTap: { print("Mini-player tapped") },
                                     onNext: {
-                                        if let idx = MockData.songs.firstIndex(where: { $0.id == song.id }) {
-                                            let next = MockData.songs[(idx + 1) % MockData.songs.count]
-                                            nowPlaying = next
-                                        }
+                                        advancePlayback(from: song)
                                     },
                                     onPrev: {
-                                        if let idx = MockData.songs.firstIndex(where: { $0.id == song.id }) {
-                                            let prev = MockData.songs[(idx - 1 + MockData.songs.count) % MockData.songs.count]
-                                            nowPlaying = prev
-                                        }
+                                        stepBackPlayback(from: song)
                                     }
                                 )
                                 // Matched-geometry makes the mini-player smoothly shrink/reposition
@@ -168,16 +156,10 @@ struct RootTabView: View {
                                 isPlaying: $isPlaying,
                                 onTap: { print("Mini-player tapped") },
                                 onNext: {
-                                    if let idx = MockData.songs.firstIndex(where: { $0.id == song.id }) {
-                                        let next = MockData.songs[(idx + 1) % MockData.songs.count]
-                                        nowPlaying = next
-                                    }
+                                    advancePlayback(from: song)
                                 },
                                 onPrev: {
-                                    if let idx = MockData.songs.firstIndex(where: { $0.id == song.id }) {
-                                        let prev = MockData.songs[(idx - 1 + MockData.songs.count) % MockData.songs.count]
-                                        nowPlaying = prev
-                                    }
+                                    stepBackPlayback(from: song)
                                 }
                             )
                             .matchedGeometryEffect(id: "miniPlayer", in: miniPlayerNS)
@@ -193,9 +175,43 @@ struct RootTabView: View {
                 .animation(.spring(response: 0.35, dampingFraction: 0.9), value: nowPlaying?.id)
             }
         }
+        .onAppear {
+            if nowPlaying == nil {
+                nowPlaying = libraryStore.librarySongs.first
+            }
+        }
+        .onChange(of: libraryStore.librarySongs.map(\.id)) { _, _ in
+            let songs = libraryStore.librarySongs
+            guard let current = nowPlaying else {
+                nowPlaying = songs.first
+                return
+            }
+            if !songs.contains(where: { $0.id == current.id }) {
+                nowPlaying = songs.first
+            }
+        }
+    }
+
+    private func advancePlayback(from current: Song) {
+        if let queued = libraryStore.popQueue() {
+            nowPlaying = queued
+            return
+        }
+        guard !libraryStore.librarySongs.isEmpty,
+              let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == current.id }) else { return }
+        let next = libraryStore.librarySongs[(idx + 1) % libraryStore.librarySongs.count]
+        nowPlaying = next
+    }
+
+    private func stepBackPlayback(from current: Song) {
+        guard !libraryStore.librarySongs.isEmpty,
+              let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == current.id }) else { return }
+        let prev = libraryStore.librarySongs[(idx - 1 + libraryStore.librarySongs.count) % libraryStore.librarySongs.count]
+        nowPlaying = prev
     }
 }
 
 #Preview {
     RootTabView()
+        .environmentObject(LibraryStore())
 }

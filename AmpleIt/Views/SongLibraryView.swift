@@ -12,6 +12,7 @@ struct SongLibraryView: View {
     @Binding var isBackButtonActive: Bool
     let chromeNS: Namespace.ID
     let currentTab: AppTab
+    @EnvironmentObject private var libraryStore: LibraryStore
 
     @State private var searchText: String = ""
     @State private var actionsSong: Song? = nil
@@ -20,10 +21,10 @@ struct SongLibraryView: View {
 
     private var filteredSongs: [Song] {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return MockData.songs
+            return libraryStore.librarySongs
         }
         let q = searchText.lowercased()
-        return MockData.songs.filter {
+        return libraryStore.librarySongs.filter {
             $0.title.lowercased().contains(q) || $0.artist.lowercased().contains(q)
         }
     }
@@ -86,24 +87,27 @@ struct SongLibraryView: View {
                         ),
                         isBackButtonActive: $isBackButtonActive,
                         onEdit: { /* later */ },
-                        onAddToQueue: { /* later */ },
-                        onAddToPlaylist: { /* later */ },
-                        onDelete: { /* later */ }
+                        onDuplicate: {
+                            libraryStore.duplicate(song: song)
+                        },
+                        onAddToQueue: {
+                            libraryStore.addToQueue(song: song)
+                        },
+                        onAddToPlaylist: { /* handled inside overlay sheet */ },
+                        onDelete: {
+                            libraryStore.delete(songID: song.id)
+                        }
                     )
                     .zIndex(50) // ensure it's above list + add button + mini-player
                 }
 
-                NavigationLink(
-                    destination: YTUploadView(
-                        isSidebarOpen: $isSidebarOpen,
-                        chromeNS: chromeNS,
-                        isBackButtonActive: $isBackButtonActive
-                    ),
-                    isActive: $isYTUploadActive
-                ) {
-                    EmptyView()
-                }
-
+            }
+            .navigationDestination(isPresented: $isYTUploadActive) {
+                YTUploadView(
+                    isSidebarOpen: $isSidebarOpen,
+                    chromeNS: chromeNS,
+                    isBackButtonActive: $isBackButtonActive
+                )
             }
         }
     }
@@ -198,5 +202,6 @@ private struct SongLibraryPreviewWrapper: View {
             chromeNS: chromeNS,
             currentTab: .songs
         )
+        .environmentObject(LibraryStore())
     }
 }

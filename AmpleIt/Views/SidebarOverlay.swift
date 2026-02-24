@@ -40,6 +40,7 @@ struct SidebarOverlay: View {
             }
         }
         .allowsHitTesting(isOpen)
+        .animation(.spring(response: 0.42, dampingFraction: 0.88), value: isOpen)
     }
 }
 
@@ -88,7 +89,15 @@ private struct SidebarCard: View {
             // Mask + compositing prevent trailing/ghosting during move transitions.
             .mask(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .compositingGroup()
-            .transition(.move(edge: .leading))
+            .transition(
+                .asymmetric(
+                    insertion: .move(edge: .leading)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.98, anchor: .leading)),
+                    removal: .move(edge: .leading)
+                        .combined(with: .opacity)
+                )
+            )
         }
     }
 

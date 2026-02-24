@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct AmpleItApp: App {
+    @StateObject private var libraryStore = LibraryStore()
+
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                .environmentObject(libraryStore)
         }
     }
 }

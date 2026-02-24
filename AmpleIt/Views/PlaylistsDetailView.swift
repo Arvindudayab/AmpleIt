@@ -13,11 +13,12 @@ struct PlaylistDetailView: View {
     @Binding var isSidebarOpen: Bool
     let chromeNS: Namespace.ID
     @Binding var isBackButtonActive: Bool
+    @EnvironmentObject private var libraryStore: LibraryStore
     
     @State private var artworkImage: Image? = nil
     @State private var showArtworkOverlay: Bool = false
 
-    @State private var songs: [Song] = []
+    @State private var shuffledSongs: [Song]? = nil
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -49,7 +50,7 @@ struct PlaylistDetailView: View {
 
                             PlaylistActionButton(title: "Shuffle", systemImage: "shuffle") {
                                 print("Shuffle \(playlist.name)")
-                                songs.shuffle()
+                                shuffledSongs = currentSongs.shuffled()
                             }
                         }
                         .padding(.horizontal, AppLayout.horizontalPadding)
@@ -57,7 +58,7 @@ struct PlaylistDetailView: View {
 
                         // Track list
                         VStack(spacing: 0) {
-                            if songs.isEmpty {
+                            if currentSongs.isEmpty {
                                 VStack(spacing: 8) {
                                     Text("No songs yet.")
                                         .font(.subheadline.weight(.semibold))
@@ -68,7 +69,7 @@ struct PlaylistDetailView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
                             } else {
-                                ForEach(songs) { song in
+                                ForEach(currentSongs) { song in
                                     PlaylistTrackRow(song: song)
                                     Divider().opacity(0.5)
                                 }
@@ -79,7 +80,7 @@ struct PlaylistDetailView: View {
 
                         // Footer metadata
                         HStack {
-                            Text("\(songs.count) song\(songs.count == 1 ? "" : "s"), \(estimatedMinutes) minutes")
+                            Text("\(currentSongs.count) song\(currentSongs.count == 1 ? "" : "s"), \(estimatedMinutes) minutes")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                             Spacer()
@@ -120,6 +121,9 @@ struct PlaylistDetailView: View {
             .onDisappear {
                 isBackButtonActive = false
                 showArtworkOverlay = false
+            }
+            .onChange(of: libraryStore.songs(in: playlist.id).map(\.id)) { _, _ in
+                shuffledSongs = nil
             }
         }
     }
@@ -209,7 +213,11 @@ struct PlaylistDetailView: View {
 
     private var estimatedMinutes: Int {
         // Simple estimate since Song doesn’t yet have duration
-        max(1, songs.count * 3)
+        max(1, currentSongs.count * 3)
+    }
+
+    private var currentSongs: [Song] {
+        shuffledSongs ?? libraryStore.songs(in: playlist.id)
     }
 }
 
@@ -295,6 +303,7 @@ private struct PlaylistDetailPreviewWrapper: View {
                 chromeNS: chromeNS,
                 isBackButtonActive: $isBackButtonActive
             )
+            .environmentObject(LibraryStore())
         }
     }
 }
