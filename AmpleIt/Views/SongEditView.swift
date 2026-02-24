@@ -16,9 +16,7 @@ struct SongEditView: View {
     @State private var artist: String = "Arvind"
 
     // Artwork: store a picked image; nil means placeholder
-//    @State private var artworkImage: Image? = nil
     @State private var artworkImage: Image? = nil
-//    @State private var isArtworkHovering: Bool = false
     @State private var showArtworkOverlay: Bool = false
 
     // Presets
@@ -73,10 +71,6 @@ struct SongEditView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.primary)
                         .frame(width: 36, height: 36)
-//                        .background(.ultraThinMaterial, in: Circle())
-//                        .overlay(
-//                            Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1)
-//                        )
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Back")
@@ -90,7 +84,6 @@ struct SongEditView: View {
                     Text("Save")
                         .font(.system(size: 16, weight: .semibold))
                 }
-                //.buttonStyle(.plain)
             }
         }
     }
@@ -177,9 +170,6 @@ struct SongEditView: View {
                 }
             }
             .frame(width: 220, height: 220)
-//            .onHover { hovering in
-//                isArtworkHovering = hovering
-//            }
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .buttonStyle(.plain)

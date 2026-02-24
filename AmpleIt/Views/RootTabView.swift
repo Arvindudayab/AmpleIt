@@ -67,7 +67,6 @@ struct RootTabView: View {
                 }
             }
             .blur(radius: isSidebarOpen ? 10 : 0)
-            //.animation(.easeInOut(duration: 0.18), value: isSidebarOpen)
 
             // Sidebar overlays everything
             SidebarOverlay(
@@ -193,37 +192,6 @@ struct RootTabView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .animation(.spring(response: 0.35, dampingFraction: 0.9), value: nowPlaying?.id)
             }
-//            if let song = nowPlaying {
-//                VStack {
-//                    Spacer()
-//                    MiniPlayerView(
-//                        song: song,
-//                        isPlaying: $isPlaying,
-//                        onTap: {
-//                            // Open full player later
-//                            print("Mini-player tapped")
-//                        },
-//                        onNext: {
-//                            // demo next
-//                            if let idx = MockData.songs.firstIndex(where: { $0.id == song.id }) {
-//                                let next = MockData.songs[(idx + 1) % MockData.songs.count]
-//                                nowPlaying = next
-//                            }
-//                        },
-//                        onPrev: {
-//                            if let idx = MockData.songs.firstIndex(where: { $0.id == song.id }) {
-//                                let prev = MockData.songs[(idx - 1 + MockData.songs.count) % MockData.songs.count]
-//                                nowPlaying = prev
-//                            }
-//                        }
-//                    )
-//
-//                    .padding(.horizontal, 14)
-//                    .padding(.bottom, 12)
-//                }
-//                .transition(.move(edge: .bottom).combined(with: .opacity))
-//                .animation(.spring(response: 0.35, dampingFraction: 0.9), value: nowPlaying?.id)
-//            }
         }
     }
 }

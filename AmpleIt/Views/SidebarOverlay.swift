@@ -58,7 +58,6 @@ private struct SidebarCard: View {
             ZStack(alignment: .topLeading) {
                 // Panel background
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    //.fill(.ultraThinMaterial)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -68,8 +67,6 @@ private struct SidebarCard: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
-                        //,
-                        //in: RoundedRectangle(cornerRadius: 18, style: .continuous)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -91,7 +88,6 @@ private struct SidebarCard: View {
             // Mask + compositing prevent trailing/ghosting during move transitions.
             .mask(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .compositingGroup()
-            //.transition(.opacity.combined(with: .move(edge: .leading)))
             .transition(.move(edge: .leading))
         }
     }

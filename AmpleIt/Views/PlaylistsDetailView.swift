@@ -108,10 +108,6 @@ struct PlaylistDetailView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.primary)
                             .frame(width: 36, height: 36)
-                            //.background(.ultraThinMaterial, in: Circle())
-//                            .overlay(
-//                                Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1)
-//                            )
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Back")
