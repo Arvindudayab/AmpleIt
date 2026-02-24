@@ -194,9 +194,9 @@ private struct SongLibraryPreviewWrapper: View {
     var body: some View {
         SongLibraryView(
             isSidebarOpen: $isSidebarOpen,
+            isBackButtonActive: $isBackButtonActive,
             chromeNS: chromeNS,
-            currentTab: .songs,
-            isBackButtonActive: $isBackButtonActive
+            currentTab: .songs
         )
     }
 }
