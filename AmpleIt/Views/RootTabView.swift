@@ -49,6 +49,7 @@ struct RootTabView: View {
                 case .songs:
                     SongLibraryView(
                         isSidebarOpen: $isSidebarOpen,
+                        isBackButtonActive: $isBackButtonActive,
                         chromeNS: chromeNS,
                         currentTab: .songs,
                         isBackButtonActive: $isBackButtonActive

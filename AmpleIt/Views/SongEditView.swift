@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct SongEditView: View {
-    @Environment(\.dismiss) private var dismiss
     @Binding var isBackButtonActive: Bool
+    @Environment(\.dismiss) private var dismiss
 
     // MARK: - Editable Fields (local draft state)
     @State private var title: String = "Midnight Echoes"
@@ -124,7 +124,7 @@ struct SongEditView: View {
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(Color.primary.opacity(0.06))
 
                 Group {
                     if let artworkImage {
@@ -141,7 +141,7 @@ struct SongEditView: View {
                     if showArtworkOverlay {
                         // Dim overlay (tap anywhere on the dim area to dismiss)
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(Color.black.opacity(0.25))
+                            .fill(Color("opposite").opacity(0.25))
                             .onTapGesture {
                                 withAnimation(.easeInOut(duration: 0.15)) {
                                     showArtworkOverlay = false

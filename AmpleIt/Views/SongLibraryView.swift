@@ -9,9 +9,9 @@ import SwiftUI
 
 struct SongLibraryView: View {
     @Binding var isSidebarOpen: Bool
+    @Binding var isBackButtonActive: Bool
     let chromeNS: Namespace.ID
     let currentTab: AppTab
-    @Binding var isBackButtonActive: Bool
 
     @State private var searchText: String = ""
     @State private var actionsSong: Song? = nil

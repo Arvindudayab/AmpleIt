@@ -13,6 +13,9 @@ struct PlaylistDetailView: View {
     @Binding var isSidebarOpen: Bool
     let chromeNS: Namespace.ID
     @Binding var isBackButtonActive: Bool
+    
+    @State private var artworkImage: Image? = nil
+    @State private var showArtworkOverlay: Bool = false
 
     @State private var songs: [Song] = []
     @Environment(\.dismiss) private var dismiss
@@ -28,11 +31,8 @@ struct PlaylistDetailView: View {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     VStack(spacing: 18) {
-                        // Cover
-                        ArtworkPlaceholder(seed: playlist.id.uuidString)
-                            .aspectRatio(1, contentMode: .fill)
-                            .frame(maxWidth: 320)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        // Cover (tap to reveal Replace prompt)
+                        playlistCoverSection
                             .padding(.top, 18)
 
                         // Title (in-content).
@@ -123,6 +123,7 @@ struct PlaylistDetailView: View {
             }
             .onDisappear {
                 isBackButtonActive = false
+                showArtworkOverlay = false
             }
         }
     }
@@ -142,6 +143,72 @@ struct PlaylistDetailView: View {
             isBackButtonActive = false
         }
         dismiss()
+    }
+    
+    private var playlistCoverSection: some View {
+        Button {
+            // First tap reveals the overlay (Replace prompt). Actual replacement happens when
+            // the user taps the "Replace" button in the overlay.
+            withAnimation(.easeInOut(duration: 0.15)) {
+                showArtworkOverlay = true
+            }
+        } label: {
+            ZStack {
+                // Base artwork
+                Group {
+                    if let artworkImage {
+                        artworkImage
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        ArtworkPlaceholder(seed: playlist.id.uuidString)
+                    }
+                }
+                .aspectRatio(1, contentMode: .fill)
+                .frame(maxWidth: 320)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                // Overlay shown only after tap
+                if showArtworkOverlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.black.opacity(0.28))
+                        .frame(maxWidth: 320)
+                        .aspectRatio(1, contentMode: .fill)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                showArtworkOverlay = false
+                            }
+                        }
+
+                    Button {
+                        // TODO: Present a PhotosPicker / file picker.
+                        // For now, toggle a mock image so the flow is testable.
+                        if artworkImage == nil {
+                            artworkImage = Image(systemName: "photo")
+                        } else {
+                            artworkImage = nil
+                        }
+
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            showArtworkOverlay = false
+                        }
+                    } label: {
+                        Text("Replace")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule().fill(Color.black.opacity(0.38))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Replace playlist cover")
     }
 
     private var estimatedMinutes: Int {
