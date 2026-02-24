@@ -50,8 +50,7 @@ struct RootTabView: View {
                         isSidebarOpen: $isSidebarOpen,
                         isBackButtonActive: $isBackButtonActive,
                         chromeNS: chromeNS,
-                        currentTab: .songs,
-                        isBackButtonActive: $isBackButtonActive
+                        currentTab: .songs
                     )
                 case .playlists:
                     PlaylistsView(
