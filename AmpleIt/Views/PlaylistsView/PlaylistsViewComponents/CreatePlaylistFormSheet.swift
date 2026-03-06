@@ -15,63 +15,61 @@ struct CreatePlaylistFormSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    HStack {
-                        Spacer()
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                showArtworkOverlay = true
-                            }
-                        } label: {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color.primary.opacity(0.06))
+                    Button {
+                        // First tap reveals the overlay (Replace prompt). Actual replacement happens when
+                        // the user taps the "Replace" button in the overlay.
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            showArtworkOverlay = true
+                        }
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color.primary.opacity(0.06))
 
-                                Group {
-                                    if let artwork {
-                                        artwork
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .clipped()
-                                    } else {
-                                        ArtworkPlaceholder(seed: "new-playlist")
-                                    }
+                            Group {
+                                if let artwork {
+                                    artwork
+                                        .resizable()
+                                        .scaledToFill()
+                                } else {
+                                    ArtworkPlaceholder(seed: "new-playlist")
                                 }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay {
-                                    if showArtworkOverlay {
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(Color.black.opacity(0.25))
-                                            .onTapGesture {
-                                                withAnimation(.easeInOut(duration: 0.15)) {
-                                                    showArtworkOverlay = false
-                                                }
-                                            }
-
-                                        Button {
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay {
+                                if showArtworkOverlay {
+                                    // Dim overlay (tap anywhere on the dim area to dismiss)
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color.black.opacity(0.25))
+                                        .onTapGesture {
                                             withAnimation(.easeInOut(duration: 0.15)) {
                                                 showArtworkOverlay = false
                                             }
-                                            isArtworkPickerPresented = true
-                                        } label: {
-                                            Text("Replace")
-                                                .font(.system(size: 16, weight: .semibold))
-                                                .foregroundStyle(.white)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                                .background(Capsule().fill(Color.black.opacity(0.35)))
                                         }
-                                        .buttonStyle(.plain)
+
+                                    // Replace button
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.15)) {
+                                            showArtworkOverlay = false
+                                        }
+                                        isArtworkPickerPresented = true
+                                    } label: {
+                                        Text("Replace")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(.white)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .background(Capsule().fill(Color.black.opacity(0.35)))
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
-                            .aspectRatio(1, contentMode: .fit)
-                            .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.plain)
-                        Spacer()
+                        .aspectRatio(1, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.plain)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowBackground(Color("AppBackground"))
                 } header: {

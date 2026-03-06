@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		AA00E7072EF3A96D002C4834 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2506E7022EF3A96D002C4834 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2506E7092EF3A96D002C4834;
+			remoteInfo = AmpleIt;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2506E70A2EF3A96D002C4834 /* AmpleIt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AmpleIt.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA00E7012EF3A96D002C4834 /* AmpleItTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AmpleItTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +27,22 @@
 			path = AmpleIt;
 			sourceTree = "<group>";
 		};
+		AA00E7022EF3A96D002C4834 /* AmpleItTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AmpleItTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2506E7072EF3A96D002C4834 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA00E7042EF3A96D002C4834 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				2506E70C2EF3A96D002C4834 /* AmpleIt */,
+				AA00E7022EF3A96D002C4834 /* AmpleItTests */,
 				2506E70B2EF3A96D002C4834 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				2506E70A2EF3A96D002C4834 /* AmpleIt.app */,
+				AA00E7012EF3A96D002C4834 /* AmpleItTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 			productReference = 2506E70A2EF3A96D002C4834 /* AmpleIt.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AA00E7062EF3A96D002C4834 /* AmpleItTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA00E70B2EF3A96D002C4834 /* Build configuration list for PBXNativeTarget "AmpleItTests" */;
+			buildPhases = (
+				AA00E7032EF3A96D002C4834 /* Sources */,
+				AA00E7042EF3A96D002C4834 /* Frameworks */,
+				AA00E7052EF3A96D002C4834 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA00E7082EF3A96D002C4834 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AA00E7022EF3A96D002C4834 /* AmpleItTests */,
+			);
+			name = AmpleItTests;
+			packageProductDependencies = (
+			);
+			productName = AmpleItTests;
+			productReference = AA00E7012EF3A96D002C4834 /* AmpleItTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +130,10 @@
 				TargetAttributes = {
 					2506E7092EF3A96D002C4834 = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					AA00E7062EF3A96D002C4834 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 2506E7092EF3A96D002C4834;
 					};
 				};
 			};
@@ -100,12 +152,20 @@
 			projectRoot = "";
 			targets = (
 				2506E7092EF3A96D002C4834 /* AmpleIt */,
+				AA00E7062EF3A96D002C4834 /* AmpleItTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		2506E7082EF3A96D002C4834 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA00E7052EF3A96D002C4834 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +182,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA00E7032EF3A96D002C4834 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA00E7082EF3A96D002C4834 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2506E7092EF3A96D002C4834 /* AmpleIt */;
+			targetProxy = AA00E7072EF3A96D002C4834 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2506E7162EF3A970002C4834 /* Debug */ = {
@@ -300,6 +375,44 @@
 			};
 			name = Release;
 		};
+		AA00E7092EF3A96D002C4834 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.arvindu.AmpleItTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AmpleIt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AmpleIt";
+			};
+			name = Debug;
+		};
+		AA00E70A2EF3A96D002C4834 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.arvindu.AmpleItTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AmpleIt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AmpleIt";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -317,6 +430,15 @@
 			buildConfigurations = (
 				2506E7192EF3A970002C4834 /* Debug */,
 				2506E71A2EF3A970002C4834 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA00E70B2EF3A96D002C4834 /* Build configuration list for PBXNativeTarget "AmpleItTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA00E7092EF3A96D002C4834 /* Debug */,
+				AA00E70A2EF3A96D002C4834 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

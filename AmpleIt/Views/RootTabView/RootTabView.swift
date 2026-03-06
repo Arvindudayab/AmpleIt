@@ -28,6 +28,7 @@ struct RootTabView: View {
     // Mini-player mock state (wire to your real player later)
     @State private var nowPlaying: Song? = nil
     @State private var isPlaying: Bool = true
+    @State private var isSongPlayerPresented: Bool = false
     
     @State private var isBackButtonActive: Bool = false
 
@@ -137,7 +138,9 @@ struct RootTabView: View {
                                 MiniPlayerView(
                                     song: song,
                                     isPlaying: $isPlaying,
-                                    onTap: { print("Mini-player tapped") },
+                                    onTap: {
+                                        isSongPlayerPresented = true
+                                    },
                                     onNext: {
                                         advancePlayback(from: song)
                                     },
@@ -154,7 +157,9 @@ struct RootTabView: View {
                             MiniPlayerView(
                                 song: song,
                                 isPlaying: $isPlaying,
-                                onTap: { print("Mini-player tapped") },
+                                onTap: {
+                                    isSongPlayerPresented = true
+                                },
                                 onNext: {
                                     advancePlayback(from: song)
                                 },
@@ -188,6 +193,24 @@ struct RootTabView: View {
             }
             if !songs.contains(where: { $0.id == current.id }) {
                 nowPlaying = songs.first
+            }
+        }
+        .fullScreenCover(isPresented: $isSongPlayerPresented) {
+            if let song = nowPlaying {
+                SongPlayerView(
+                    song: song,
+                    queueSongs: libraryStore.queue,
+                    isPlaying: $isPlaying,
+                    onClose: {
+                        isSongPlayerPresented = false
+                    },
+                    onNext: {
+                        advancePlayback(from: song)
+                    },
+                    onPrev: {
+                        stepBackPlayback(from: song)
+                    }
+                )
             }
         }
     }
