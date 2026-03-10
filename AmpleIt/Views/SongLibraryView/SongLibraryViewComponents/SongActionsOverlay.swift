@@ -71,7 +71,7 @@ struct SongActionsOverlay: View {
                             isPresented = false
                         }
                     },
-                    onDone: {
+                    onCancel: {
                         isCreatePlaylistPresented = false
                         showArtworkOverlay = false
                     }

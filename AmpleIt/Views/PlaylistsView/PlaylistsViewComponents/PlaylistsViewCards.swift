@@ -3,24 +3,27 @@ import SwiftUI
 struct PlaylistCard: View {
     let playlist: Playlist
     let artwork: Image?
+    let artworkSide: CGFloat
+    private let cornerRadius: CGFloat = 22
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Color.primary.opacity(0.06))
 
                 if let artwork {
                     artwork
                         .resizable()
                         .scaledToFill()
+                        .frame(width: artworkSide, height: artworkSide)
+                        .clipped()
                 } else {
                     ArtworkPlaceholder(seed: playlist.id.uuidString)
                 }
             }
-            .aspectRatio(1, contentMode: .fill)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .frame(width: artworkSide, height: artworkSide)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
 
             Text(playlist.name)
                 .font(.subheadline.weight(.semibold))
@@ -38,10 +41,11 @@ struct PlaylistCardSelectable: View {
     let playlist: Playlist
     let artwork: Image?
     let isSelected: Bool
+    let artworkSide: CGFloat
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            PlaylistCard(playlist: playlist, artwork: artwork)
+            PlaylistCard(playlist: playlist, artwork: artwork, artworkSide: artworkSide)
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .strokeBorder(isSelected ? Color("AppAccent") : Color.primary.opacity(0.12), lineWidth: 2)

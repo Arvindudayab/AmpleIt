@@ -24,6 +24,10 @@ struct PlaylistsView: View {
 
     private let gridSpacing: CGFloat = 18
     private let rowSpacing: CGFloat = 26
+    private var artworkSide: CGFloat {
+        let totalHorizontalPadding = (AppLayout.horizontalPadding * 2) + gridSpacing
+        return max(0, (UIScreen.main.bounds.width - totalHorizontalPadding) / 2)
+    }
     
     private var columns: [GridItem] {
         [
@@ -80,7 +84,8 @@ struct PlaylistsView: View {
                                     PlaylistCardSelectable(
                                         playlist: item.playlist,
                                         artwork: item.artwork,
-                                        isSelected: selectedPlaylistIDs.contains(item.playlist.id)
+                                        isSelected: selectedPlaylistIDs.contains(item.playlist.id),
+                                        artworkSide: artworkSide
                                     )
                                     .onTapGesture {
                                         toggleSelection(for: item.playlist.id)
@@ -94,7 +99,11 @@ struct PlaylistsView: View {
                                             isBackButtonActive: $isBackButtonActive
                                         )
                                     } label: {
-                                        PlaylistCard(playlist: item.playlist, artwork: item.artwork)
+                                        PlaylistCard(
+                                            playlist: item.playlist,
+                                            artwork: item.artwork,
+                                            artworkSide: artworkSide
+                                        )
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -152,7 +161,7 @@ struct PlaylistsView: View {
                 artwork: $newPlaylistArtwork,
                 showArtworkOverlay: $showArtworkOverlay,
                 onCreate: createPlaylist,
-                onDone: {
+                onCancel: {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                         isCreatePlaylistPresented = false
                         showArtworkOverlay = false

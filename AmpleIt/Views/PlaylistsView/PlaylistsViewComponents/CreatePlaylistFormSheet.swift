@@ -7,9 +7,13 @@ struct CreatePlaylistFormSheet: View {
     @Binding var artwork: Image?
     @Binding var showArtworkOverlay: Bool
     let onCreate: () -> Void
-    let onDone: () -> Void
+    let onCancel: () -> Void
     @State private var selectedArtworkItem: PhotosPickerItem? = nil
     @State private var isArtworkPickerPresented: Bool = false
+    private var artworkSide: CGFloat {
+        // Match form row content width so the artwork remains a true square.
+        UIScreen.main.bounds.width - 32
+    }
 
     var body: some View {
         NavigationStack {
@@ -35,8 +39,7 @@ struct CreatePlaylistFormSheet: View {
                                     ArtworkPlaceholder(seed: "new-playlist")
                                 }
                             }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .frame(width: artworkSide, height: artworkSide)
                             .overlay {
                                 if showArtworkOverlay {
                                     // Dim overlay (tap anywhere on the dim area to dismiss)
@@ -66,8 +69,9 @@ struct CreatePlaylistFormSheet: View {
                                 }
                             }
                         }
-                        .aspectRatio(1, contentMode: .fit)
-                        .frame(maxWidth: .infinity)
+                        .frame(width: artworkSide, height: artworkSide)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -135,7 +139,7 @@ struct CreatePlaylistFormSheet: View {
             .navigationTitle("Create Playlist")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done", action: onDone)
+                    Button("Cancel", action: onCancel)
                 }
             }
         }
