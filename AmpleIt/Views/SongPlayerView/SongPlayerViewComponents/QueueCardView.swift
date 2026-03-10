@@ -33,7 +33,7 @@ struct QueueCardView: View {
                     VStack(spacing: 0) {
                         ForEach(queueSongs) { song in
                             HStack(spacing: 10) {
-                                ArtworkPlaceholder(seed: song.id.uuidString)
+                                SongArtworkView(song: song)
                                     .frame(width: 34, height: 34)
                                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 

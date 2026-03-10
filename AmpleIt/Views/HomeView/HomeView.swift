@@ -92,8 +92,8 @@ struct HomeView: View {
         }
         .fullScreenCover(item: $editingSong) { song in
             NavigationStack {
-                SongEditView(song: song, isBackButtonActive: $isBackButtonActive) { title, artist in
-                    libraryStore.updateSong(id: song.id, title: title, artist: artist)
+                SongEditView(song: song, isBackButtonActive: $isBackButtonActive) { updatedSong in
+                    libraryStore.updateSong(updatedSong)
                 }
             }
         }

@@ -33,7 +33,7 @@ struct MiniPlayerView: View {
     }
 
     private var artwork: some View {
-        ArtworkPlaceholder(seed: song.id.uuidString)
+        SongArtworkView(song: song)
             .frame(width: 46, height: 46)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(

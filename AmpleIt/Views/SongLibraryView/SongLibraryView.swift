@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SongLibraryView: View {
     @Binding var isSidebarOpen: Bool
@@ -19,6 +20,13 @@ struct SongLibraryView: View {
     @State private var editingSong: Song? = nil
     @State private var isAddMenuPresented: Bool = false
     @State private var isYTUploadActive: Bool = false
+    @State private var isDeviceImporterPresented: Bool = false
+    @State private var importAlertMessage: String?
+
+    private static let allowedAudioTypes: [UTType] = [
+        UTType(filenameExtension: "mp3") ?? .audio,
+        UTType(filenameExtension: "wav") ?? .audio
+    ]
 
     private var filteredSongs: [Song] {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -112,10 +120,23 @@ struct SongLibraryView: View {
                 )
             }
         }
+        .fileImporter(
+            isPresented: $isDeviceImporterPresented,
+            allowedContentTypes: Self.allowedAudioTypes,
+            allowsMultipleSelection: false,
+            onCompletion: handleDeviceImport
+        )
+        .alert("Upload Failed", isPresented: importAlertIsPresented) {
+            Button("OK", role: .cancel) {
+                importAlertMessage = nil
+            }
+        } message: {
+            Text(importAlertMessage ?? "The selected file could not be imported.")
+        }
         .fullScreenCover(item: $editingSong) { song in
             NavigationStack {
-                SongEditView(song: song, isBackButtonActive: $isBackButtonActive) { title, artist in
-                    libraryStore.updateSong(id: song.id, title: title, artist: artist)
+                SongEditView(song: song, isBackButtonActive: $isBackButtonActive) { updatedSong in
+                    libraryStore.updateSong(updatedSong)
                 }
             }
         }
@@ -138,7 +159,7 @@ struct SongLibraryView: View {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                         isAddMenuPresented = false
                     }
-                    // TODO: add document picker
+                    isDeviceImporterPresented = true
                 }
                 Divider().opacity(0.6)
                 addMenuRow(title: "Upload from YouTube", systemImage: "play.rectangle") {
@@ -193,6 +214,48 @@ struct SongLibraryView: View {
         .buttonStyle(.plain)
     }
 
+    private var importAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { importAlertMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    importAlertMessage = nil
+                }
+            }
+        )
+    }
+
+    private func handleDeviceImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            importAudioFile(at: url)
+        case .failure:
+            importAlertMessage = "The file picker could not open the selected file."
+        }
+    }
+
+    private func importAudioFile(at url: URL) {
+        let fileExtension = url.pathExtension.lowercased()
+        guard ["mp3", "wav"].contains(fileExtension) else {
+            importAlertMessage = "Only .mp3 and .wav files can be imported."
+            return
+        }
+
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        guard FileManager.default.isReadableFile(atPath: url.path) else {
+            importAlertMessage = "The selected file is not readable."
+            return
+        }
+
+        libraryStore.importSong(fromFileURL: url)
+    }
 }
 
 #Preview("Songs") {

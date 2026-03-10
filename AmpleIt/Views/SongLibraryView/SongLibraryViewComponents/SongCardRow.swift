@@ -10,7 +10,7 @@ struct SongCardRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ArtworkPlaceholder(seed: song.id.uuidString)
+            SongArtworkView(song: song)
                 .frame(width: 54, height: 54)
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
 

@@ -39,7 +39,7 @@ struct PlaylistTrackRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ArtworkPlaceholder(seed: song.id.uuidString)
+            SongArtworkView(song: song)
                 .frame(width: 56, height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 

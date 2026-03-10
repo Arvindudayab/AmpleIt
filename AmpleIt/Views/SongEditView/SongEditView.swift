@@ -12,15 +12,14 @@ import UIKit
 struct SongEditView: View {
     let song: Song
     @Binding var isBackButtonActive: Bool
-    let onSave: (String, String) -> Void
+    let onSave: (Song) -> Void
     @Environment(\.dismiss) private var dismiss
 
     // MARK: - Editable Fields (local draft state)
     @State private var title: String
     @State private var artist: String
 
-    // Artwork: store a picked image; nil means placeholder
-    @State private var artworkImage: Image? = nil
+    @State private var artwork: ArtworkAsset?
     @State private var showArtworkOverlay: Bool = false
     @State private var selectedArtworkItem: PhotosPickerItem? = nil
     @State private var isArtworkPickerPresented: Bool = false
@@ -36,12 +35,19 @@ struct SongEditView: View {
     @State private var mid: Double = 0.0
     @State private var treble: Double = 0.0
 
-    init(song: Song, isBackButtonActive: Binding<Bool>, onSave: @escaping (String, String) -> Void) {
+    init(song: Song, isBackButtonActive: Binding<Bool>, onSave: @escaping (Song) -> Void) {
         self.song = song
         self._isBackButtonActive = isBackButtonActive
         self.onSave = onSave
         _title = State(initialValue: song.title)
         _artist = State(initialValue: song.artist)
+        _artwork = State(initialValue: song.artwork)
+        _selectedPreset = State(initialValue: song.settings.preset)
+        _speed = State(initialValue: song.settings.speed)
+        _reverb = State(initialValue: song.settings.reverb)
+        _bass = State(initialValue: song.settings.bass)
+        _mid = State(initialValue: song.settings.mid)
+        _treble = State(initialValue: song.settings.treble)
     }
 
     var body: some View {
@@ -83,9 +89,9 @@ struct SongEditView: View {
             Task {
                 guard let item,
                       let data = try? await item.loadTransferable(type: Data.self),
-                      let uiImage = UIImage(data: data) else { return }
+                      let asset = ArtworkAsset(data: data) else { return }
                 await MainActor.run {
-                    artworkImage = Image(uiImage: uiImage)
+                    artwork = asset
                 }
             }
         }
@@ -145,7 +151,21 @@ struct SongEditView: View {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedArtist = artist.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty, !trimmedArtist.isEmpty else { return false }
-        onSave(trimmedTitle, trimmedArtist)
+        let updatedSong = Song(
+            id: song.id,
+            title: trimmedTitle,
+            artist: trimmedArtist,
+            artwork: artwork,
+            settings: SongSettings(
+                preset: selectedPreset,
+                speed: speed,
+                reverb: reverb,
+                bass: bass,
+                mid: mid,
+                treble: treble
+            )
+        )
+        onSave(updatedSong)
         return true
     }
 
@@ -165,7 +185,7 @@ struct SongEditView: View {
                     .fill(Color.primary.opacity(0.06))
 
                 Group {
-                    if let artworkImage {
+                    if let artworkImage = artwork?.image {
                         artworkImage
                             .resizable()
                             .scaledToFill()
@@ -292,21 +312,15 @@ struct SongEditView: View {
             
             Spacer()
 
-            Button {
-                // TODO: persist preset
-                print("Save preset: \(selectedPreset)")
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "square.and.arrow.down")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text("Save Preset")
-                        .font(.system(size: 15, weight: .semibold))
-                }
-                .foregroundStyle(Color.red)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+            HStack(spacing: 8) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Saved with song")
+                    .font(.system(size: 15, weight: .semibold))
             }
-            //.buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
         }
     }
 
@@ -327,6 +341,6 @@ struct SongEditView: View {
 
 #Preview("Song Edit") {
     NavigationStack {
-        SongEditView(song: MockData.songs.first!, isBackButtonActive: .constant(false)) { _, _ in }
+        SongEditView(song: MockData.songs.first!, isBackButtonActive: .constant(false)) { _ in }
     }
 }

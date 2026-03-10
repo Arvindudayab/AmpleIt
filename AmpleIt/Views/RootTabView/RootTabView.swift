@@ -26,7 +26,7 @@ struct RootTabView: View {
     @State private var selectedTab: AppTab = .home
 
     // Mini-player mock state (wire to your real player later)
-    @State private var nowPlaying: Song? = nil
+    @State private var nowPlayingID: UUID? = nil
     @State private var isPlaying: Bool = true
     @State private var isSongPlayerPresented: Bool = false
     
@@ -34,6 +34,11 @@ struct RootTabView: View {
 
     @Namespace private var chromeNS
     @Namespace private var miniPlayerNS 
+
+    private var nowPlayingSong: Song? {
+        guard let nowPlayingID else { return nil }
+        return libraryStore.librarySongs.first(where: { $0.id == nowPlayingID })
+    }
 
     var body: some View {
         ZStack {
@@ -78,7 +83,7 @@ struct RootTabView: View {
             )
             
             // Bottom tint (Option 2): subtle fade behind the mini-player
-            if nowPlaying != nil { 
+            if nowPlayingSong != nil { 
                 LinearGradient(
                     colors: [
                         Color("opposite").opacity(0.0),
@@ -95,7 +100,7 @@ struct RootTabView: View {
             }
 
             // Mini-player floating above bottom safe area
-            if let song = nowPlaying {
+            if let song = nowPlayingSong {
                 VStack {
                     Spacer()
 
@@ -142,10 +147,10 @@ struct RootTabView: View {
                                         isSongPlayerPresented = true
                                     },
                                     onNext: {
-                                        advancePlayback(from: song)
+                                        advancePlayback()
                                     },
                                     onPrev: {
-                                        stepBackPlayback(from: song)
+                                        stepBackPlayback()
                                     }
                                 )
                                 // Matched-geometry makes the mini-player smoothly shrink/reposition
@@ -161,10 +166,10 @@ struct RootTabView: View {
                                     isSongPlayerPresented = true
                                 },
                                 onNext: {
-                                    advancePlayback(from: song)
+                                    advancePlayback()
                                 },
                                 onPrev: {
-                                    stepBackPlayback(from: song)
+                                    stepBackPlayback()
                                 }
                             )
                             .matchedGeometryEffect(id: "miniPlayer", in: miniPlayerNS)
@@ -177,65 +182,63 @@ struct RootTabView: View {
                     .animation(.spring(response: 0.35, dampingFraction: 0.9), value: isBackButtonActive)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .animation(.spring(response: 0.35, dampingFraction: 0.9), value: nowPlaying?.id)
+                .animation(.spring(response: 0.35, dampingFraction: 0.9), value: nowPlayingID)
             }
         }
         .onAppear {
-            if nowPlaying == nil {
-                nowPlaying = libraryStore.librarySongs.first
+            if nowPlayingID == nil {
+                nowPlayingID = libraryStore.librarySongs.first?.id
             }
         }
         .onChange(of: libraryStore.librarySongs.map(\.id)) { _, _ in
             let songs = libraryStore.librarySongs
-            guard let current = nowPlaying else {
-                nowPlaying = songs.first
+            guard let currentID = nowPlayingID else {
+                nowPlayingID = songs.first?.id
                 return
             }
-            if !songs.contains(where: { $0.id == current.id }) {
-                nowPlaying = songs.first
+            if !songs.contains(where: { $0.id == currentID }) {
+                nowPlayingID = songs.first?.id
             }
         }
-        .onChange(of: libraryStore.librarySongs.map { "\($0.id.uuidString)|\($0.title)|\($0.artist)" }) { _, _ in
-            guard let current = nowPlaying,
-                  let updated = libraryStore.librarySongs.first(where: { $0.id == current.id }) else { return }
-            nowPlaying = updated
-        }
         .fullScreenCover(isPresented: $isSongPlayerPresented) {
-            if let song = nowPlaying {
+            if let songID = nowPlayingID {
                 SongPlayerView(
-                    song: song,
+                    songID: songID,
                     queueSongs: libraryStore.queue,
                     isPlaying: $isPlaying,
                     onClose: {
                         isSongPlayerPresented = false
                     },
                     onNext: {
-                        advancePlayback(from: song)
+                        advancePlayback()
                     },
                     onPrev: {
-                        stepBackPlayback(from: song)
+                        stepBackPlayback()
                     }
                 )
+                .environmentObject(libraryStore)
             }
         }
     }
 
-    private func advancePlayback(from current: Song) {
+    private func advancePlayback() {
         if let queued = libraryStore.popQueue() {
-            nowPlaying = queued
+            nowPlayingID = queued.id
             return
         }
         guard !libraryStore.librarySongs.isEmpty,
-              let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == current.id }) else { return }
+              let currentID = nowPlayingID,
+              let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == currentID }) else { return }
         let next = libraryStore.librarySongs[(idx + 1) % libraryStore.librarySongs.count]
-        nowPlaying = next
+        nowPlayingID = next.id
     }
 
-    private func stepBackPlayback(from current: Song) {
+    private func stepBackPlayback() {
         guard !libraryStore.librarySongs.isEmpty,
-              let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == current.id }) else { return }
+              let currentID = nowPlayingID,
+              let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == currentID }) else { return }
         let prev = libraryStore.librarySongs[(idx - 1 + libraryStore.librarySongs.count) % libraryStore.librarySongs.count]
-        nowPlaying = prev
+        nowPlayingID = prev.id
     }
 }
 

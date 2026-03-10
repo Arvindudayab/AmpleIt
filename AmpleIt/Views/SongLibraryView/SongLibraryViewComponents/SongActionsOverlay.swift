@@ -90,7 +90,7 @@ struct SongActionsOverlay: View {
     private var actionsCard: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                ArtworkPlaceholder(seed: song.id.uuidString)
+                SongArtworkView(song: song)
                     .frame(width: 44, height: 44)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
