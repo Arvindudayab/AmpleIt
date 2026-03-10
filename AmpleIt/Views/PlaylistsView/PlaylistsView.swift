@@ -16,7 +16,7 @@ struct PlaylistsView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
     @State private var isCreatePlaylistPresented: Bool = false
     @State private var newPlaylistName: String = ""
-    @State private var newPlaylistArtwork: Image? = nil
+    @State private var newPlaylistArtwork: ArtworkAsset? = nil
     @State private var showArtworkOverlay: Bool = false
     @State private var isSelecting: Bool = false
     @State private var selectedPlaylistIDs: Set<UUID> = []
@@ -125,10 +125,6 @@ struct PlaylistsView: View {
                     .padding(.trailing, AppLayout.horizontalPadding)
                     .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
                 }
-
-                if isCreatePlaylistPresented {
-                    EmptyView()
-                }
             }
         }
         .toolbar {
@@ -158,7 +154,10 @@ struct PlaylistsView: View {
         .sheet(isPresented: $isCreatePlaylistPresented) {
             CreatePlaylistFormSheet(
                 name: $newPlaylistName,
-                artwork: $newPlaylistArtwork,
+                artwork: Binding<ArtworkAsset?>(
+                    get: { newPlaylistArtwork },
+                    set: { newPlaylistArtwork = $0 }
+                ),
                 showArtworkOverlay: $showArtworkOverlay,
                 onCreate: createPlaylist,
                 onCancel: {

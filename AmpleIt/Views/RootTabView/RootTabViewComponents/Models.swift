@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct Song: Identifiable {
     let id: UUID
@@ -10,6 +11,23 @@ struct Playlist: Identifiable {
     let id: UUID
     let name: String
     let count: Int
+}
+
+struct ArtworkAsset: Codable, Equatable {
+    let imageData: Data
+
+    init?(data: Data) {
+        guard let uiImage = UIImage(data: data) else { return nil }
+        self.imageData = uiImage.jpegData(compressionQuality: 0.9) ?? data
+    }
+
+    var uiImage: UIImage? {
+        UIImage(data: imageData)
+    }
+
+    var image: Image? {
+        uiImage.map(Image.init(uiImage:))
+    }
 }
 
 enum MockData {
@@ -34,4 +52,20 @@ enum MockData {
         .init(id: UUID(), name: "Chill", count: 20),
         .init(id: UUID(), name: "Focus", count: 16)
     ]
+
+    static func seededPlaylistSongIDs(
+        songs: [Song] = songs,
+        playlists: [Playlist] = playlists
+    ) -> [UUID: [UUID]] {
+        guard !songs.isEmpty else {
+            return Dictionary(uniqueKeysWithValues: playlists.map { ($0.id, []) })
+        }
+
+        return Dictionary(uniqueKeysWithValues: playlists.enumerated().map { playlistOffset, playlist in
+            let ids = (0..<playlist.count).map { index in
+                songs[(index + playlistOffset) % songs.count].id
+            }
+            return (playlist.id, ids)
+        })
+    }
 }

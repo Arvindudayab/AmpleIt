@@ -4,7 +4,7 @@ import UIKit
 
 struct CreatePlaylistFormSheet: View {
     @Binding var name: String
-    @Binding var artwork: Image?
+    @Binding var artwork: ArtworkAsset?
     @Binding var showArtworkOverlay: Bool
     let onCreate: () -> Void
     let onCancel: () -> Void
@@ -31,8 +31,8 @@ struct CreatePlaylistFormSheet: View {
                                 .fill(Color.primary.opacity(0.06))
 
                             Group {
-                                if let artwork {
-                                    artwork
+                                if let artworkImage = artwork?.image {
+                                    artworkImage
                                         .resizable()
                                         .scaledToFill()
                                 } else {
@@ -130,9 +130,9 @@ struct CreatePlaylistFormSheet: View {
                 Task {
                     guard let item,
                           let data = try? await item.loadTransferable(type: Data.self),
-                          let uiImage = UIImage(data: data) else { return }
+                          let asset = ArtworkAsset(data: data) else { return }
                     await MainActor.run {
-                        artwork = Image(uiImage: uiImage)
+                        artwork = asset
                     }
                 }
             }

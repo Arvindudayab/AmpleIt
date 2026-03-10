@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PlaylistCard: View {
     let playlist: Playlist
-    let artwork: Image?
+    let artwork: ArtworkAsset?
     let artworkSide: CGFloat
     private let cornerRadius: CGFloat = 22
 
@@ -12,8 +12,8 @@ struct PlaylistCard: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Color.primary.opacity(0.06))
 
-                if let artwork {
-                    artwork
+                if let artworkImage = artwork?.image {
+                    artworkImage
                         .resizable()
                         .scaledToFill()
                         .frame(width: artworkSide, height: artworkSide)
@@ -39,7 +39,7 @@ struct PlaylistCard: View {
 
 struct PlaylistCardSelectable: View {
     let playlist: Playlist
-    let artwork: Image?
+    let artwork: ArtworkAsset?
     let isSelected: Bool
     let artworkSide: CGFloat
 
@@ -66,7 +66,7 @@ struct PlaylistCardSelectable: View {
 
 struct PlaylistItem: Identifiable {
     let playlist: Playlist
-    let artwork: Image?
+    let artwork: ArtworkAsset?
 
     var id: UUID { playlist.id }
 }

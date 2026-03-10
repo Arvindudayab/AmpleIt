@@ -105,7 +105,7 @@ struct SidebarCard: View {
     private var footer: some View {
         HStack(spacing: 8) {
             Image(systemName: "sparkles")
-            Text("Tip: Long-press a song for quick actions.")
+            Text("Tip: Use the more button on a song for quick actions.")
         }
         .font(.footnote)
         .foregroundStyle(.secondary)

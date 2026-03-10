@@ -16,6 +16,7 @@ struct SongLibraryView: View {
 
     @State private var searchText: String = ""
     @State private var actionsSong: Song? = nil
+    @State private var editingSong: Song? = nil
     @State private var isAddMenuPresented: Bool = false
     @State private var isYTUploadActive: Bool = false
 
@@ -85,8 +86,9 @@ struct SongLibraryView: View {
                             get: { actionsSong != nil },
                             set: { newValue in if !newValue { actionsSong = nil } }
                         ),
-                        isBackButtonActive: $isBackButtonActive,
-                        onEdit: { /* later */ },
+                        onEdit: {
+                            editingSong = song
+                        },
                         onDuplicate: {
                             libraryStore.duplicate(song: song)
                         },
@@ -108,6 +110,13 @@ struct SongLibraryView: View {
                     chromeNS: chromeNS,
                     isBackButtonActive: $isBackButtonActive
                 )
+            }
+        }
+        .fullScreenCover(item: $editingSong) { song in
+            NavigationStack {
+                SongEditView(song: song, isBackButtonActive: $isBackButtonActive) { title, artist in
+                    libraryStore.updateSong(id: song.id, title: title, artist: artist)
+                }
             }
         }
     }

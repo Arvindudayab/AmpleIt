@@ -7,15 +7,14 @@ final class LibraryStore: ObservableObject {
 
     // Playlist -> ordered song ids
     @Published private(set) var playlistSongIDs: [UUID: [UUID]] = [:]
-    // Optional per-playlist artwork for user-created playlists
-    @Published private(set) var playlistArtwork: [UUID: Image] = [:]
+    // Optional per-playlist artwork stored as serializable image data
+    @Published private(set) var playlistArtwork: [UUID: ArtworkAsset] = [:]
 
     init() {
         self.librarySongs = MockData.songs
         self.playlists = MockData.playlists
-        for playlist in playlists {
-            playlistSongIDs[playlist.id] = []
-        }
+        self.playlistSongIDs = MockData.seededPlaylistSongIDs(songs: librarySongs, playlists: playlists)
+        syncAllPlaylistCounts()
     }
 
     func duplicate(song: Song) {
@@ -29,6 +28,7 @@ final class LibraryStore: ObservableObject {
         for key in playlistSongIDs.keys {
             playlistSongIDs[key]?.removeAll { $0 == songID }
         }
+        syncAllPlaylistCounts()
     }
 
     func addToQueue(song: Song) {
@@ -45,15 +45,11 @@ final class LibraryStore: ObservableObject {
         var ids = playlistSongIDs[playlistID] ?? []
         ids.append(song.id)
         playlistSongIDs[playlistID] = ids
-
-        if let index = playlists.firstIndex(where: { $0.id == playlistID }) {
-            let playlist = playlists[index]
-            playlists[index] = Playlist(id: playlist.id, name: playlist.name, count: playlist.count + 1)
-        }
+        syncPlaylistCount(for: playlistID)
     }
 
     @discardableResult
-    func createPlaylist(name: String, artwork: Image? = nil) -> Playlist {
+    func createPlaylist(name: String, artwork: ArtworkAsset? = nil) -> Playlist {
         let playlist = Playlist(id: UUID(), name: name, count: 0)
         playlists.append(playlist)
         playlistSongIDs[playlist.id] = []
@@ -71,9 +67,51 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func updateSong(id: UUID, title: String, artist: String) {
+        guard let index = librarySongs.firstIndex(where: { $0.id == id }) else { return }
+        let updated = Song(id: id, title: title, artist: artist)
+        librarySongs[index] = updated
+        for queueIndex in queue.indices where queue[queueIndex].id == id {
+            queue[queueIndex] = updated
+        }
+    }
+
+    func setPlaylistArtwork(_ artwork: ArtworkAsset?, for playlistID: UUID) {
+        guard playlists.contains(where: { $0.id == playlistID }) else { return }
+        if let artwork {
+            playlistArtwork[playlistID] = artwork
+        } else {
+            playlistArtwork.removeValue(forKey: playlistID)
+        }
+    }
+
+    func artwork(for playlistID: UUID) -> ArtworkAsset? {
+        playlistArtwork[playlistID]
+    }
+
     func songs(in playlistID: UUID) -> [Song] {
         guard let ids = playlistSongIDs[playlistID], !ids.isEmpty else { return [] }
         let map = Dictionary(uniqueKeysWithValues: librarySongs.map { ($0.id, $0) })
         return ids.compactMap { map[$0] }
+    }
+
+    private func syncAllPlaylistCounts() {
+        playlists = playlists.map { playlist in
+            Playlist(
+                id: playlist.id,
+                name: playlist.name,
+                count: playlistSongIDs[playlist.id]?.count ?? 0
+            )
+        }
+    }
+
+    private func syncPlaylistCount(for playlistID: UUID) {
+        guard let index = playlists.firstIndex(where: { $0.id == playlistID }) else { return }
+        let playlist = playlists[index]
+        playlists[index] = Playlist(
+            id: playlist.id,
+            name: playlist.name,
+            count: playlistSongIDs[playlistID]?.count ?? 0
+        )
     }
 }

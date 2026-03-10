@@ -10,12 +10,14 @@ import PhotosUI
 import UIKit
 
 struct SongEditView: View {
+    let song: Song
     @Binding var isBackButtonActive: Bool
+    let onSave: (String, String) -> Void
     @Environment(\.dismiss) private var dismiss
 
     // MARK: - Editable Fields (local draft state)
-    @State private var title: String = "Midnight Echoes"
-    @State private var artist: String = "Arvind"
+    @State private var title: String
+    @State private var artist: String
 
     // Artwork: store a picked image; nil means placeholder
     @State private var artworkImage: Image? = nil
@@ -33,6 +35,14 @@ struct SongEditView: View {
     @State private var bass: Double = 0.0
     @State private var mid: Double = 0.0
     @State private var treble: Double = 0.0
+
+    init(song: Song, isBackButtonActive: Binding<Bool>, onSave: @escaping (String, String) -> Void) {
+        self.song = song
+        self._isBackButtonActive = isBackButtonActive
+        self.onSave = onSave
+        _title = State(initialValue: song.title)
+        _artist = State(initialValue: song.artist)
+    }
 
     var body: some View {
         ScrollView {
@@ -97,12 +107,13 @@ struct SongEditView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    // TODO: persist changes to your model/store
+                    guard persistChanges() else { return }
                     handleBack()
                 } label: {
                     Text("Save")
                         .font(.system(size: 16, weight: .semibold))
                 }
+                .disabled(!canSave)
             }
         }
     }
@@ -122,6 +133,20 @@ struct SongEditView: View {
             isBackButtonActive = false
         }
         dismiss()
+    }
+
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !artist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    @discardableResult
+    private func persistChanges() -> Bool {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedArtist = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty, !trimmedArtist.isEmpty else { return false }
+        onSave(trimmedTitle, trimmedArtist)
+        return true
     }
 
     // MARK: - Sections
@@ -147,7 +172,7 @@ struct SongEditView: View {
                             .frame(width: artworkSize, height: artworkSize)
                             .clipped()
                     } else {
-                        ArtworkPlaceholder(seed: "edit")
+                        ArtworkPlaceholder(seed: song.id.uuidString)
                     }
                 }
                 .frame(width: artworkSize, height: artworkSize)
@@ -236,7 +261,7 @@ struct SongEditView: View {
     private var presetsRow: some View {
         HStack(spacing: 12) {
             Menu {
-                ForEach(presets, id: \ .self) { p in
+                ForEach(presets, id: \.self) { p in
                     Button {
                         selectedPreset = p
                     } label: {
@@ -302,6 +327,6 @@ struct SongEditView: View {
 
 #Preview("Song Edit") {
     NavigationStack {
-        SongEditView(isBackButtonActive: .constant(false))
+        SongEditView(song: MockData.songs.first!, isBackButtonActive: .constant(false)) { _, _ in }
     }
 }

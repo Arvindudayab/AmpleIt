@@ -195,6 +195,11 @@ struct RootTabView: View {
                 nowPlaying = songs.first
             }
         }
+        .onChange(of: libraryStore.librarySongs.map { "\($0.id.uuidString)|\($0.title)|\($0.artist)" }) { _, _ in
+            guard let current = nowPlaying,
+                  let updated = libraryStore.librarySongs.first(where: { $0.id == current.id }) else { return }
+            nowPlaying = updated
+        }
         .fullScreenCover(isPresented: $isSongPlayerPresented) {
             if let song = nowPlaying {
                 SongPlayerView(

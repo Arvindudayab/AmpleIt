@@ -3,7 +3,6 @@ import SwiftUI
 struct SongActionsOverlay: View {
     let song: Song
     @Binding var isPresented: Bool
-    @Binding var isBackButtonActive: Bool
     @EnvironmentObject private var libraryStore: LibraryStore
 
     var onEdit: (() -> Void)? = nil
@@ -11,90 +10,79 @@ struct SongActionsOverlay: View {
     var onAddToQueue: (() -> Void)? = nil
     var onAddToPlaylist: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
-
-    private enum Route: Hashable {
-        case edit
-    }
-
-    @State private var path = NavigationPath()
     @State private var isPlaylistPickerCardPresented: Bool = false
     @State private var isCreatePlaylistPresented: Bool = false
     @State private var isDeleteConfirmationPresented: Bool = false
     @State private var newPlaylistName: String = ""
-    @State private var newPlaylistArtwork: Image? = nil
+    @State private var newPlaylistArtwork: ArtworkAsset? = nil
     @State private var showArtworkOverlay: Bool = false
 
     var body: some View {
-        NavigationStack(path: $path) {
-            ZStack {
-                Rectangle()
-                    .fill(Color("opposite").opacity(0.22))
-                    .ignoresSafeArea()
-                    .background(.ultraThinMaterial)
-                    .onTapGesture {
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                            isPresented = false
-                        }
-                    }
-
-                if isPlaylistPickerCardPresented {
-                    playlistPickerCard
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                } else {
-                    actionsCard
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                }
-            }
-            .navigationDestination(for: Route.self) { route in
-                switch route {
-                case .edit:
-                    SongEditView(isBackButtonActive: $isBackButtonActive)
-                }
-            }
-            .sheet(isPresented: $isCreatePlaylistPresented) {
-                CreatePlaylistFormSheet(
-                    name: $newPlaylistName,
-                    artwork: $newPlaylistArtwork,
-                    showArtworkOverlay: $showArtworkOverlay,
-                    onCreate: {
-                        let trimmed = newPlaylistName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !trimmed.isEmpty else { return }
-                        let created = libraryStore.createPlaylist(name: trimmed, artwork: newPlaylistArtwork)
-                        libraryStore.addSong(song, to: created.id)
-                        onAddToPlaylist?()
-                        newPlaylistName = ""
-                        newPlaylistArtwork = nil
-                        showArtworkOverlay = false
-                        isCreatePlaylistPresented = false
-                        isPlaylistPickerCardPresented = false
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                            isPresented = false
-                        }
-                    },
-                    onCancel: {
-                        isCreatePlaylistPresented = false
-                        showArtworkOverlay = false
-                    }
-                )
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(Color("AppBackground"))
-            }
-            .confirmationDialog(
-                "Delete this song?",
-                isPresented: $isDeleteConfirmationPresented,
-                titleVisibility: .visible
-            ) {
-                Button("Delete", role: .destructive) {
+        ZStack {
+            Rectangle()
+                .fill(Color("opposite").opacity(0.22))
+                .ignoresSafeArea()
+                .background(.ultraThinMaterial)
+                .onTapGesture {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                         isPresented = false
                     }
-                    onDelete?()
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will remove the song from your library and playlists.")
+
+            if isPlaylistPickerCardPresented {
+                playlistPickerCard
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            } else {
+                actionsCard
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
+        }
+        .sheet(isPresented: $isCreatePlaylistPresented) {
+            CreatePlaylistFormSheet(
+                name: $newPlaylistName,
+                artwork: Binding<ArtworkAsset?>(
+                    get: { newPlaylistArtwork },
+                    set: { newPlaylistArtwork = $0 }
+                ),
+                showArtworkOverlay: $showArtworkOverlay,
+                onCreate: {
+                    let trimmed = newPlaylistName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return }
+                    let created = libraryStore.createPlaylist(name: trimmed, artwork: newPlaylistArtwork)
+                    libraryStore.addSong(song, to: created.id)
+                    onAddToPlaylist?()
+                    newPlaylistName = ""
+                    newPlaylistArtwork = nil
+                    showArtworkOverlay = false
+                    isCreatePlaylistPresented = false
+                    isPlaylistPickerCardPresented = false
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                        isPresented = false
+                    }
+                },
+                onCancel: {
+                    isCreatePlaylistPresented = false
+                    showArtworkOverlay = false
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Color("AppBackground"))
+        }
+        .confirmationDialog(
+            "Delete this song?",
+            isPresented: $isDeleteConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                    isPresented = false
+                }
+                onDelete?()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will remove the song from your library and playlists.")
         }
         .allowsHitTesting(isPresented)
     }
@@ -141,7 +129,6 @@ struct SongActionsOverlay: View {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                         isPresented = false
                     }
-                    path.append(Route.edit)
                     onEdit?()
                 }
                 Divider().opacity(0.6)

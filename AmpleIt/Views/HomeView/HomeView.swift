@@ -18,6 +18,7 @@ struct HomeView: View {
     private let recentlyAddedIDs = Array(MockData.songs.prefix(5)).map(\.id)
     private let recentlyPlayedIDs = Array(MockData.songs.prefix(5)).map(\.id)
     @State private var actionsSong: Song? = nil
+    @State private var editingSong: Song? = nil
 
     var body: some View {
         AppScreenContainer(
@@ -71,8 +72,9 @@ struct HomeView: View {
                             get: { actionsSong != nil },
                             set: { newValue in if !newValue { actionsSong = nil } }
                         ),
-                        isBackButtonActive: $isBackButtonActive,
-                        onEdit: { /* later */ },
+                        onEdit: {
+                            editingSong = song
+                        },
                         onDuplicate: {
                             libraryStore.duplicate(song: song)
                         },
@@ -85,6 +87,13 @@ struct HomeView: View {
                         }
                     )
                     .zIndex(50)
+                }
+            }
+        }
+        .fullScreenCover(item: $editingSong) { song in
+            NavigationStack {
+                SongEditView(song: song, isBackButtonActive: $isBackButtonActive) { title, artist in
+                    libraryStore.updateSong(id: song.id, title: title, artist: artist)
                 }
             }
         }

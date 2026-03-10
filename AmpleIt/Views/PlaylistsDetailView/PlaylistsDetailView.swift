@@ -16,8 +16,7 @@ struct PlaylistDetailView: View {
     let chromeNS: Namespace.ID
     @Binding var isBackButtonActive: Bool
     @EnvironmentObject private var libraryStore: LibraryStore
-    
-    @State private var artworkImage: Image? = nil
+
     @State private var showArtworkOverlay: Bool = false
     @State private var selectedArtworkItem: PhotosPickerItem? = nil
     @State private var isArtworkPickerPresented: Bool = false
@@ -135,9 +134,9 @@ struct PlaylistDetailView: View {
                 Task {
                     guard let item,
                           let data = try? await item.loadTransferable(type: Data.self),
-                          let uiImage = UIImage(data: data) else { return }
+                          let artwork = ArtworkAsset(data: data) else { return }
                     await MainActor.run {
-                        artworkImage = Image(uiImage: uiImage)
+                        libraryStore.setPlaylistArtwork(artwork, for: playlist.id)
                     }
                 }
             }
@@ -175,7 +174,7 @@ struct PlaylistDetailView: View {
             ZStack {
                 // Base artwork
                 Group {
-                    if let artworkImage {
+                    if let artworkImage = libraryStore.artwork(for: playlist.id)?.image {
                         artworkImage
                             .resizable()
                             .scaledToFill()
