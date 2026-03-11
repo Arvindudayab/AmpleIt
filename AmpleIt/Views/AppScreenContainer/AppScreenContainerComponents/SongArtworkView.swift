@@ -4,15 +4,16 @@ struct SongArtworkView: View {
     let song: Song
 
     var body: some View {
-        Group {
+        ZStack {
             if let artworkImage = song.artwork?.image {
                 artworkImage
                     .resizable()
-                    .scaledToFill()
+                    .aspectRatio(contentMode: .fill)
             } else {
                 ArtworkPlaceholder(seed: song.id.uuidString)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
     }
 }

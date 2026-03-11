@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="vc-launch-screen">
+    <device id="retina6_12" orientation="portrait" appearance="dark"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="scene-launch-screen">
+            <objects>
+                <viewController id="vc-launch-screen" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="view-root">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" image="SoundAlphaV1" translatesAutoresizingMaskIntoConstraints="NO" id="image-logo">
+                                <rect key="frame" x="140" y="370" width="112" height="112"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="142" id="constraint-logo-height"/>
+                                    <constraint firstAttribute="width" constant="140" id="constraint-logo-width"/>
+                                </constraints>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="safe-area-root"/>
+                        <color key="backgroundColor" name="AppBackground"/>
+                        <color key="tintColor" systemColor="labelColor"/>
+                        <constraints>
+                            <constraint firstItem="image-logo" firstAttribute="centerX" secondItem="view-root" secondAttribute="centerX" id="constraint-logo-center-x"/>
+                            <constraint firstItem="image-logo" firstAttribute="centerY" secondItem="view-root" secondAttribute="centerY" id="constraint-logo-center-y"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="first-responder" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="64.885496183206101" y="41.549295774647888"/>
+        </scene>
+    </scenes>
+    <color key="tintColor" name="opposite"/>
+    <resources>
+        <image name="SoundAlphaV1" width="500" height="500"/>
+        <namedColor name="AppBackground">
+            <color red="0.93999999761581421" green="0.95599997043609619" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="opposite">
+            <color red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <systemColor name="labelColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

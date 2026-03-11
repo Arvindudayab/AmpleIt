@@ -14,6 +14,10 @@ struct SongPlayerView: View {
         libraryStore.librarySongs.first(where: { $0.id == songID })
     }
 
+    private var artworkSide: CGFloat {
+        UIScreen.main.bounds.width - (AppLayout.horizontalPadding * 2)
+    }
+
     var body: some View {
         ZStack {
             Color("AppBackground")
@@ -39,11 +43,11 @@ struct SongPlayerView: View {
                             .fill(Color.primary.opacity(0.06))
 
                         SongArtworkView(song: song)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(width: artworkSide, height: artworkSide)
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
+                    .frame(width: artworkSide, height: artworkSide)
                     .frame(maxWidth: .infinity)
-                    .aspectRatio(1, contentMode: .fit)
                     .padding(.horizontal, AppLayout.horizontalPadding)
 
                     HStack(spacing: 12) {
