@@ -25,7 +25,7 @@ struct MiniPlayerView: View {
         .background(background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color("AppAccent").opacity(0.5), lineWidth: 1)
+                .strokeBorder(Color("AppAccent"), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))

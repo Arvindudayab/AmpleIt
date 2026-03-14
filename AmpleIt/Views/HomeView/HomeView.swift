@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Binding var isSidebarOpen: Bool
+    @Binding var selectedTab: AppTab
     let chromeNS: Namespace.ID
     let currentTab: AppTab
     @Binding var isBackButtonActive: Bool
@@ -24,7 +25,15 @@ struct HomeView: View {
         AppScreenContainer(
             title: currentTab.title,
             isSidebarOpen: $isSidebarOpen,
-            chromeNS: chromeNS
+            chromeNS: chromeNS,
+            showsTrailingPlaceholder: false,
+            trailingToolbar: AnyView(
+                AmpShortcutButton {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                        selectedTab = .amp
+                    }
+                }
+            )
         ) {
             ZStack {
                 ScrollView {
@@ -111,16 +120,41 @@ struct HomeView: View {
 
 private struct HomePreviewWrapper: View {
     @State private var isSidebarOpen: Bool = false
+    @State private var selectedTab: AppTab = .home
     @State private var isBackButtonActive: Bool = false
     @Namespace private var chromeNS
 
     var body: some View {
         HomeView(
             isSidebarOpen: $isSidebarOpen,
+            selectedTab: $selectedTab,
             chromeNS: chromeNS,
             currentTab: .home,
             isBackButtonActive: $isBackButtonActive
         )
         .environmentObject(LibraryStore())
+    }
+}
+
+private struct AmpShortcutButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(Color("AppAccent").opacity(0.14))
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(Color("AppAccent").opacity(0.28), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open Amp")
     }
 }

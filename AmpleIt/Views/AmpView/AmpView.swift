@@ -11,6 +11,7 @@ struct AmpView: View {
     @Binding var isSidebarOpen: Bool
     let chromeNS: Namespace.ID
     @State private var draftMessage: String = ""
+    @FocusState private var isMessageFieldFocused: Bool
 
     var body: some View {
         AppScreenContainer(
@@ -69,6 +70,7 @@ struct AmpView: View {
 
                 HStack(spacing: 10) {
                     TextField("Message Amp…", text: $draftMessage)
+                        .focused($isMessageFieldFocused)
                         .textInputAutocapitalization(.sentences)
                         .autocorrectionDisabled(false)
                         .padding(12)
@@ -84,6 +86,7 @@ struct AmpView: View {
                     Button {
                         // TODO: send message to Amp
                         draftMessage = ""
+                        dismissKeyboard()
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 22, weight: .semibold))
@@ -96,6 +99,11 @@ struct AmpView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color("AppBackground"))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                dismissKeyboard()
+            }
+            .simultaneousGesture(keyboardDismissGesture)
         }
     }
 
@@ -113,6 +121,20 @@ struct AmpView: View {
                 )
             if !isUser { Spacer() }
         }
+    }
+
+    private var keyboardDismissGesture: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .onEnded { value in
+                let isDownwardSwipe = value.translation.height > 28
+                let isMostlyVertical = abs(value.translation.height) > abs(value.translation.width)
+                guard isDownwardSwipe, isMostlyVertical else { return }
+                dismissKeyboard()
+            }
+    }
+
+    private func dismissKeyboard() {
+        isMessageFieldFocused = false
     }
 
 }

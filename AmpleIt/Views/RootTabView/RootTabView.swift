@@ -9,7 +9,7 @@ import SwiftUI
 enum AppTab: String, CaseIterable, Identifiable {
     case home, songs, playlists, amp
     var id: String { rawValue }
-
+ 
     var title: String {
         switch self {
         case .home: return "Home"
@@ -48,6 +48,7 @@ struct RootTabView: View {
                 case .home:
                     HomeView(
                         isSidebarOpen: $isSidebarOpen,
+                        selectedTab: $selectedTab,
                         chromeNS: chromeNS,
                         currentTab: .home,
                         isBackButtonActive: $isBackButtonActive

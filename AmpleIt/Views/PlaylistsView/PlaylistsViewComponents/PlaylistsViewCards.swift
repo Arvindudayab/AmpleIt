@@ -56,7 +56,7 @@ struct PlaylistCardSelectable: View {
                     .fill(isSelected ? Color("AppAccent") : Color.primary.opacity(0.12))
                 Image(systemName: isSelected ? "checkmark" : "circle")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(isSelected ? Color("AppBackground") : Color.primary.opacity(0.6))
+                    .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.6))
             }
             .frame(width: 24, height: 24)
             .padding(8)

@@ -22,6 +22,9 @@ struct SongLibraryView: View {
     @State private var isYTUploadActive: Bool = false
     @State private var isDeviceImporterPresented: Bool = false
     @State private var importAlertMessage: String?
+    @State private var isSelecting = false
+    @State private var selectedSongIDs: Set<UUID> = []
+    @State private var isDeleteConfirmationPresented = false
 
     private static let allowedAudioTypes: [UTType] = [
         UTType(filenameExtension: "mp3") ?? .audio,
@@ -42,30 +45,48 @@ struct SongLibraryView: View {
         AppScreenContainer(
             title: currentTab.title,
             isSidebarOpen: $isSidebarOpen,
-            chromeNS: chromeNS
+            chromeNS: chromeNS,
+            showsTrailingPlaceholder: false,
+            trailingToolbar: AnyView(
+                Button(isSelecting ? "Done" : "Select") {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                        isSelecting.toggle()
+                        if !isSelecting {
+                            selectedSongIDs.removeAll()
+                        }
+                    }
+                }
+                .disabled(libraryStore.librarySongs.isEmpty)
+            )
         ) {
             ZStack(alignment: .bottomTrailing) {
                 List {
                     ForEach(filteredSongs) { song in
-                        SongCardRow(
-                            song: song,
-                            onEdit: { /* later */ },
-                            onAddToPlaylist: { /* later */ },
-                            onDelete: { /* later */ },
-                            onMore: {
-                                withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                                    actionsSong = song
-                                }
+                        Group {
+                            if isSelecting {
+                                selectableSongRow(song)
+                            } else {
+                                SongCardRow(
+                                    song: song,
+                                    onEdit: { /* later */ },
+                                    onAddToPlaylist: { /* later */ },
+                                    onDelete: { /* later */ },
+                                    onMore: {
+                                        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                                            actionsSong = song
+                                        }
+                                    }
+                                )
                             }
-                        )
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(
-                                top: AppLayout.verticalRowSpacing,
-                                leading: AppLayout.horizontalPadding,
-                                bottom: AppLayout.verticalRowSpacing,
-                                trailing: AppLayout.horizontalPadding
-                            ))
-                            .listRowBackground(Color.clear)
+                        }
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(
+                            top: AppLayout.verticalRowSpacing,
+                            leading: AppLayout.horizontalPadding,
+                            bottom: AppLayout.verticalRowSpacing,
+                            trailing: AppLayout.horizontalPadding
+                        ))
+                        .listRowBackground(Color.clear)
                     }
                 }
                 .listStyle(.plain)
@@ -74,13 +95,15 @@ struct SongLibraryView: View {
                 .background(Color.clear)
                 .safeAreaPadding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerScrollInset)
 
-                FloatingAddButton {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                        isAddMenuPresented.toggle()
+                if !isSelecting {
+                    FloatingAddButton {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                            isAddMenuPresented.toggle()
+                        }
                     }
+                    .padding(.trailing, AppLayout.horizontalPadding)
+                    .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
                 }
-                .padding(.trailing, AppLayout.horizontalPadding)
-                .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
                 
                 if isAddMenuPresented {
                     addMenuOverlay
@@ -120,6 +143,30 @@ struct SongLibraryView: View {
                 )
             }
         }
+        .toolbar {
+            if isSelecting {
+                ToolbarItem(placement: .bottomBar) {
+                    Button(role: .destructive) {
+                        isDeleteConfirmationPresented = true
+                    } label: {
+                        Text("Delete (\(selectedSongIDs.count))")
+                    }
+                    .disabled(selectedSongIDs.isEmpty)
+                }
+            }
+        }
+        .confirmationDialog(
+            "Delete selected songs?",
+            isPresented: $isDeleteConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                deleteSelectedSongs()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will remove the selected songs from your library, queue, and playlists.")
+        }
         .fileImporter(
             isPresented: $isDeviceImporterPresented,
             allowedContentTypes: Self.allowedAudioTypes,
@@ -140,6 +187,34 @@ struct SongLibraryView: View {
                 }
             }
         }
+    }
+
+    private func selectableSongRow(_ song: Song) -> some View {
+        let isSelected = selectedSongIDs.contains(song.id)
+
+        return SongCardRow(song: song, onMore: nil)
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? Color("AppAccent") : Color.primary.opacity(0.10),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+            .overlay(alignment: .topLeading) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? Color("AppAccent") : Color.primary.opacity(0.12))
+                    Image(systemName: isSelected ? "checkmark" : "circle")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.6))
+                }
+                .frame(width: 24, height: 24)
+                .padding(8)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                toggleSelection(for: song.id)
+            }
     }
 
     private var addMenuOverlay: some View {
@@ -255,6 +330,23 @@ struct SongLibraryView: View {
         }
 
         libraryStore.importSong(fromFileURL: url)
+    }
+
+    private func toggleSelection(for id: UUID) {
+        if selectedSongIDs.contains(id) {
+            selectedSongIDs.remove(id)
+        } else {
+            selectedSongIDs.insert(id)
+        }
+    }
+
+    private func deleteSelectedSongs() {
+        guard !selectedSongIDs.isEmpty else { return }
+        for id in selectedSongIDs {
+            libraryStore.delete(songID: id)
+        }
+        selectedSongIDs.removeAll()
+        isSelecting = false
     }
 }
 

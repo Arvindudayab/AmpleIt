@@ -10,6 +10,11 @@ import PhotosUI
 import UIKit
 
 struct SongEditView: View {
+    private enum Field: Hashable {
+        case title
+        case artist
+    }
+
     let song: Song
     @Binding var isBackButtonActive: Bool
     let onSave: (Song) -> Void
@@ -34,6 +39,7 @@ struct SongEditView: View {
     @State private var bass: Double = 0.0
     @State private var mid: Double = 0.0
     @State private var treble: Double = 0.0
+    @FocusState private var focusedField: Field?
 
     init(song: Song, isBackButtonActive: Binding<Bool>, onSave: @escaping (Song) -> Void) {
         self.song = song
@@ -69,10 +75,16 @@ struct SongEditView: View {
             .padding(.top, 18)
             .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerScrollInset)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(
             Color("AppBackground")
                 .ignoresSafeArea())
+        .contentShape(Rectangle())
+        .onTapGesture {
+            dismissKeyboard()
+        }
         .simultaneousGesture(backSwipeGesture)
+        .simultaneousGesture(keyboardDismissGesture)
         .onAppear {
             isBackButtonActive = true
         }
@@ -100,6 +112,7 @@ struct SongEditView: View {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
                     // Discard changes
+                    dismissKeyboard()
                     handleBack()
                 } label: {
                     Image(systemName: "chevron.left")
@@ -113,6 +126,7 @@ struct SongEditView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    dismissKeyboard()
                     guard persistChanges() else { return }
                     handleBack()
                 } label: {
@@ -244,6 +258,7 @@ struct SongEditView: View {
                     .foregroundStyle(.secondary)
 
                 TextField("Title", text: $title)
+                    .focused($focusedField, equals: .title)
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled(false)
                     .padding(12)
@@ -263,6 +278,7 @@ struct SongEditView: View {
                     .foregroundStyle(.secondary)
 
                 TextField("Artist", text: $artist)
+                    .focused($focusedField, equals: .artist)
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled(false)
                     .padding(12)
@@ -336,6 +352,20 @@ struct SongEditView: View {
             LevelSlider(title: "Treble", value: $treble, range: -12.0...12.0, format: { String(format: "%+.0f dB", $0) })
         }
         .padding(14)
+    }
+
+    private var keyboardDismissGesture: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .onEnded { value in
+                let isDownwardSwipe = value.translation.height > 28
+                let isMostlyVertical = abs(value.translation.height) > abs(value.translation.width)
+                guard isDownwardSwipe, isMostlyVertical else { return }
+                dismissKeyboard()
+            }
+    }
+
+    private func dismissKeyboard() {
+        focusedField = nil
     }
 }
 

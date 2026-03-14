@@ -20,7 +20,6 @@ struct PlaylistDetailView: View {
     @State private var showArtworkOverlay: Bool = false
     @State private var selectedArtworkItem: PhotosPickerItem? = nil
     @State private var isArtworkPickerPresented: Bool = false
-
     @State private var shuffledSongs: [Song]? = nil
     @Environment(\.dismiss) private var dismiss
 
