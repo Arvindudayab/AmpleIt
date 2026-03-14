@@ -73,6 +73,14 @@ final class LibraryStore: ObservableObject {
         syncPlaylistCount(for: playlistID)
     }
 
+    func removeSong(songID: UUID, from playlistID: UUID) {
+        guard playlists.contains(where: { $0.id == playlistID }) else { return }
+        guard var ids = playlistSongIDs[playlistID] else { return }
+        ids.removeAll { $0 == songID }
+        playlistSongIDs[playlistID] = ids
+        syncPlaylistCount(for: playlistID)
+    }
+
     @discardableResult
     func createPlaylist(name: String, artwork: ArtworkAsset? = nil) -> Playlist {
         let playlist = Playlist(id: UUID(), name: name, count: 0)

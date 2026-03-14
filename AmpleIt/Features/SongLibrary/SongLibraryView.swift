@@ -13,6 +13,8 @@ struct SongLibraryView: View {
     @Binding var isBackButtonActive: Bool
     let chromeNS: Namespace.ID
     let currentTab: AppTab
+    let currentPlayingSongID: UUID?
+    let onPlaySong: (Song) -> Void
     @EnvironmentObject private var libraryStore: LibraryStore
 
     @State private var searchText: String = ""
@@ -68,6 +70,10 @@ struct SongLibraryView: View {
                             } else {
                                 SongCardRow(
                                     song: song,
+                                    isNowPlaying: song.id == currentPlayingSongID,
+                                    onTap: {
+                                        onPlaySong(song)
+                                    },
                                     onEdit: { /* later */ },
                                     onAddToPlaylist: { /* later */ },
                                     onDelete: { /* later */ },
@@ -192,7 +198,11 @@ struct SongLibraryView: View {
     private func selectableSongRow(_ song: Song) -> some View {
         let isSelected = selectedSongIDs.contains(song.id)
 
-        return SongCardRow(song: song, onMore: nil)
+        return SongCardRow(
+            song: song,
+            isNowPlaying: song.id == currentPlayingSongID,
+            onMore: nil
+        )
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(
@@ -364,7 +374,9 @@ private struct SongLibraryPreviewWrapper: View {
             isSidebarOpen: $isSidebarOpen,
             isBackButtonActive: $isBackButtonActive,
             chromeNS: chromeNS,
-            currentTab: .songs
+            currentTab: .songs,
+            currentPlayingSongID: nil,
+            onPlaySong: { _ in }
         )
         .environmentObject(LibraryStore())
     }

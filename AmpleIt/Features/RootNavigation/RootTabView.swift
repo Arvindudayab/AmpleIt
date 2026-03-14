@@ -37,6 +37,8 @@ struct RootTabView: View {
                         selectedTab: $selectedTab,
                         chromeNS: chromeNS,
                         currentTab: .home,
+                        currentPlayingSongID: nowPlayingID,
+                        onPlaySong: playSong,
                         isBackButtonActive: $isBackButtonActive
                     )
                 case .songs:
@@ -44,19 +46,27 @@ struct RootTabView: View {
                         isSidebarOpen: $isSidebarOpen,
                         isBackButtonActive: $isBackButtonActive,
                         chromeNS: chromeNS,
-                        currentTab: .songs
+                        currentTab: .songs,
+                        currentPlayingSongID: nowPlayingID,
+                        onPlaySong: playSong
                     )
                 case .playlists:
                     PlaylistsView(
                         isSidebarOpen: $isSidebarOpen,
                         chromeNS: chromeNS,
                         currentTab: .playlists,
+                        currentPlayingSongID: nowPlayingID,
+                        onPlaySong: playSong,
                         isBackButtonActive: $isBackButtonActive
                     )
                 case .amp:
                     AmpView(
                         isSidebarOpen: $isSidebarOpen,
-                        chromeNS: chromeNS
+                        chromeNS: chromeNS,
+                        currentSong: nowPlayingSong,
+                        onOpenNowPlaying: {
+                            isSongPlayerPresented = true
+                        }
                     )
                 }
             }
@@ -70,7 +80,7 @@ struct RootTabView: View {
             )
             
             // Bottom tint (Option 2): subtle fade behind the mini-player
-            if nowPlayingSong != nil { 
+            if nowPlayingSong != nil && selectedTab != .amp {
                 LinearGradient(
                     colors: [
                         Color("opposite").opacity(0.0),
@@ -87,7 +97,7 @@ struct RootTabView: View {
             }
 
             // Mini-player floating above bottom safe area
-            if let song = nowPlayingSong {
+            if let song = nowPlayingSong, selectedTab != .amp {
                 VStack {
                     Spacer()
 
@@ -226,6 +236,11 @@ struct RootTabView: View {
               let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == currentID }) else { return }
         let prev = libraryStore.librarySongs[(idx - 1 + libraryStore.librarySongs.count) % libraryStore.librarySongs.count]
         nowPlayingID = prev.id
+    }
+
+    private func playSong(_ song: Song) {
+        nowPlayingID = song.id
+        isPlaying = true
     }
 }
 

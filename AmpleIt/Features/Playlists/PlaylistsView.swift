@@ -12,6 +12,8 @@ struct PlaylistsView: View {
     @Binding var isSidebarOpen: Bool
     let chromeNS: Namespace.ID
     let currentTab: AppTab
+    let currentPlayingSongID: UUID?
+    let onPlaySong: (Song) -> Void
     @Binding var isBackButtonActive: Bool
     @EnvironmentObject private var libraryStore: LibraryStore
     @State private var isCreatePlaylistPresented: Bool = false
@@ -96,6 +98,8 @@ struct PlaylistsView: View {
                                             playlist: item.playlist,
                                             isSidebarOpen: $isSidebarOpen,
                                             chromeNS: chromeNS,
+                                            currentPlayingSongID: currentPlayingSongID,
+                                            onPlaySong: onPlaySong,
                                             isBackButtonActive: $isBackButtonActive
                                         )
                                     } label: {
@@ -216,6 +220,8 @@ private struct PlaylistsPreviewWrapper: View {
             isSidebarOpen: $isSidebarOpen,
             chromeNS: chromeNS,
             currentTab: .playlists,
+            currentPlayingSongID: nil,
+            onPlaySong: { _ in },
             isBackButtonActive: $isBackButtonActive
         )
         .environmentObject(LibraryStore())

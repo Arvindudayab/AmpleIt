@@ -10,6 +10,8 @@ import SwiftUI
 struct AmpView: View {
     @Binding var isSidebarOpen: Bool
     let chromeNS: Namespace.ID
+    let currentSong: Song?
+    let onOpenNowPlaying: () -> Void
     @State private var draftMessage: String = ""
     @FocusState private var isMessageFieldFocused: Bool
 
@@ -17,7 +19,28 @@ struct AmpView: View {
         AppScreenContainer(
             title: "Amp",
             isSidebarOpen: $isSidebarOpen,
-            chromeNS: chromeNS
+            chromeNS: chromeNS,
+            showsTrailingPlaceholder: currentSong == nil,
+            trailingToolbar: currentSong.map { song in
+                AnyView(
+                    Button {
+                        dismissKeyboard()
+                        onOpenNowPlaying()
+                    } label: {
+                        Group {
+                            if song.artwork != nil {
+                                SongArtworkView(song: song)
+                            } else {
+                                ArtworkPlaceholder(seed: song.id.uuidString, symbolSize: 18)
+                            }
+                        }
+                        .frame(width: 36, height: 36)
+                        .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Open now playing")
+                )
+            }
         ) {
             VStack(spacing: 16) {
                 Spacer(minLength: 12)
@@ -95,7 +118,7 @@ struct AmpView: View {
                     .buttonStyle(.plain)
                 }
                 .padding(.horizontal, AppLayout.horizontalPadding)
-                .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
+                .padding(.bottom, AppLayout.miniPlayerBottomSpacing)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color("AppBackground"))
@@ -151,7 +174,9 @@ private struct AmpPreviewWrapper: View {
         NavigationStack {
             AmpView(
                 isSidebarOpen: $isSidebarOpen,
-                chromeNS: chromeNS
+                chromeNS: chromeNS,
+                currentSong: MockData.songs.first,
+                onOpenNowPlaying: {}
             )
         }
     }

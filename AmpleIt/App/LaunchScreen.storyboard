@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="vc-launch-screen">
-    <device id="retina6_12" orientation="portrait" appearance="dark"/>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" initialViewController="vc-launch-screen">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
-        <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -18,16 +16,15 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="SoundAlphaV1" translatesAutoresizingMaskIntoConstraints="NO" id="image-logo">
-                                <rect key="frame" x="126.5" y="355" width="140" height="142"/>
+                                <rect key="frame" x="126.5" y="356" width="140" height="140"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="142" id="constraint-logo-height"/>
                                     <constraint firstAttribute="width" constant="140" id="constraint-logo-width"/>
+                                    <constraint firstAttribute="height" constant="140" id="constraint-logo-height"/>
                                 </constraints>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="safe-area-root"/>
-                        <color key="backgroundColor" name="AppBackground"/>
-                        <color key="tintColor" systemColor="labelColor"/>
+                        <color key="backgroundColor" red="0.054901960784313725" green="0.058823529411764705" blue="0.10196078431372549" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="image-logo" firstAttribute="centerX" secondItem="view-root" secondAttribute="centerX" id="constraint-logo-center-x"/>
                             <constraint firstItem="image-logo" firstAttribute="centerY" secondItem="view-root" secondAttribute="centerY" id="constraint-logo-center-y"/>
@@ -36,20 +33,10 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="first-responder" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="64.885496183206101" y="41.549295774647888"/>
+            <point key="canvasLocation" x="64" y="42"/>
         </scene>
     </scenes>
-    <color key="tintColor" name="opposite"/>
     <resources>
         <image name="SoundAlphaV1" width="500" height="500"/>
-        <namedColor name="AppBackground">
-            <color red="0.93999999761581421" green="0.95599997043609619" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </namedColor>
-        <namedColor name="opposite">
-            <color red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </namedColor>
-        <systemColor name="labelColor">
-            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
     </resources>
 </document>

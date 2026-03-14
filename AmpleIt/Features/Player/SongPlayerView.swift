@@ -26,7 +26,6 @@ struct SongPlayerView: View {
             if let song {
                 VStack(spacing: 22) {
                     HStack {
-                        Spacer()
                         Button(action: onClose) {
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 18, weight: .semibold))
@@ -35,6 +34,8 @@ struct SongPlayerView: View {
                                 .background(Color.primary.opacity(0.08), in: Circle())
                         }
                         .buttonStyle(.plain)
+
+                        Spacer()
                     }
                     .padding(.horizontal, AppLayout.horizontalPadding)
 
@@ -165,6 +166,19 @@ struct SongPlayerView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .simultaneousGesture(dismissGesture)
+    }
+
+    private var dismissGesture: some Gesture {
+        DragGesture(minimumDistance: 16, coordinateSpace: .global)
+            .onEnded { value in
+                guard !isQueueCardPresented else { return }
+
+                let isDownwardSwipe = value.translation.height > 90
+                let isMostlyVertical = abs(value.translation.height) > abs(value.translation.width)
+                guard isDownwardSwipe, isMostlyVertical else { return }
+                onClose()
+            }
     }
 }
 

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ArtworkPlaceholder: View {
     let seed: String
+    var symbolSize: CGFloat = 34
 
     var body: some View {
         let palette = seededPalette
@@ -14,7 +15,7 @@ struct ArtworkPlaceholder: View {
             )
 
             Image(systemName: "music.note")
-                .font(.system(size: 34, weight: .semibold))
+                .font(.system(size: symbolSize, weight: .semibold))
                 .foregroundStyle(.primary.opacity(0.30))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

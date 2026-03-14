@@ -14,12 +14,15 @@ struct PlaylistDetailView: View {
     let playlist: Playlist
     @Binding var isSidebarOpen: Bool
     let chromeNS: Namespace.ID
+    let currentPlayingSongID: UUID?
+    let onPlaySong: (Song) -> Void
     @Binding var isBackButtonActive: Bool
     @EnvironmentObject private var libraryStore: LibraryStore
 
     @State private var showArtworkOverlay: Bool = false
     @State private var selectedArtworkItem: PhotosPickerItem? = nil
     @State private var isArtworkPickerPresented: Bool = false
+    @State private var isAddSongsPresented: Bool = false
     @State private var shuffledSongs: [Song]? = nil
     @Environment(\.dismiss) private var dismiss
 
@@ -72,7 +75,19 @@ struct PlaylistDetailView: View {
                                 .padding(.vertical, 18)
                             } else {
                                 ForEach(currentSongs) { song in
-                                    PlaylistTrackRow(song: song)
+                                    PlaylistTrackRow(
+                                        song: song,
+                                        isNowPlaying: song.id == currentPlayingSongID,
+                                        onTap: {
+                                            onPlaySong(song)
+                                        },
+                                        onAddToQueue: {
+                                            libraryStore.addToQueue(song: song)
+                                        },
+                                        onRemoveFromPlaylist: {
+                                            libraryStore.removeSong(songID: song.id, from: playlist.id)
+                                        }
+                                    )
                                     Divider().opacity(0.5)
                                 }
                             }
@@ -94,7 +109,7 @@ struct PlaylistDetailView: View {
                 }
 
                 FloatingAddButton(systemImage: "plus") {
-                    // Non-functional add button (placeholder)
+                    isAddSongsPresented = true
                 }
                 .padding(.trailing, AppLayout.horizontalPadding)
                 .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
@@ -129,6 +144,15 @@ struct PlaylistDetailView: View {
                 selection: $selectedArtworkItem,
                 matching: .images
             )
+            .sheet(isPresented: $isAddSongsPresented) {
+                AddSongsToPlaylistSheet(
+                    songs: availableLibrarySongs,
+                    onAdd: addSongsToPlaylist,
+                    onCancel: {}
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
             .onChange(of: selectedArtworkItem) { _, item in
                 Task {
                     guard let item,
@@ -229,6 +253,21 @@ struct PlaylistDetailView: View {
     private var currentSongs: [Song] {
         shuffledSongs ?? libraryStore.songs(in: playlist.id)
     }
+
+    private var availableLibrarySongs: [Song] {
+        let existingSongIDs = Set(libraryStore.songs(in: playlist.id).map(\.id))
+        return libraryStore.librarySongs.filter { !existingSongIDs.contains($0.id) }
+    }
+
+    private func addSongsToPlaylist(_ selectedSongIDs: Set<UUID>) {
+        guard !selectedSongIDs.isEmpty else { return }
+        let songsByID = Dictionary(uniqueKeysWithValues: libraryStore.librarySongs.map { ($0.id, $0) })
+        for songID in selectedSongIDs {
+            guard let song = songsByID[songID] else { continue }
+            libraryStore.addSong(song, to: playlist.id)
+        }
+        shuffledSongs = nil
+    }
 }
 
 #Preview("Playlist Detail") {
@@ -246,6 +285,8 @@ private struct PlaylistDetailPreviewWrapper: View {
                 playlist: Playlist(id: UUID(), name: "Workout Mix", count: 0),
                 isSidebarOpen: $isSidebarOpen,
                 chromeNS: chromeNS,
+                currentPlayingSongID: nil,
+                onPlaySong: { _ in },
                 isBackButtonActive: $isBackButtonActive
             )
             .environmentObject(LibraryStore())

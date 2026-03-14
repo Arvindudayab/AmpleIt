@@ -2,7 +2,9 @@ import SwiftUI
 
 struct SongCardRow: View {
     let song: Song
+    var isNowPlaying: Bool = false
 
+    var onTap: (() -> Void)? = nil
     var onEdit: (() -> Void)? = nil
     var onAddToPlaylist: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
@@ -10,37 +12,52 @@ struct SongCardRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            SongArtworkView(song: song)
-                .frame(width: 54, height: 54)
-                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 0) {
-                Text(song.title)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-
-                Text(song.artist)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
             Button {
-                onMore?()
+                onTap?()
             } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.primary)
-                    .padding(10)
-                    .background(
-                        Circle()
-                            .fill(Color.primary.opacity(0.06))
-                    )
+                HStack(spacing: 12) {
+                    SongArtworkView(song: song)
+                        .frame(width: 54, height: 54)
+                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 6) {
+                            if isNowPlaying {
+                                NowPlayingIndicator(size: 12)
+                            }
+
+                            Text(song.title)
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                        }
+
+                        Text(song.artist)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .contentShape(Rectangle())
             }
-            .buttonStyle(PressScaleButtonStyle())
-            .accessibilityLabel("More actions")
+            .buttonStyle(.plain)
+
+            if let onMore {
+                Button {
+                    onMore()
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.primary)
+                        .padding(10)
+                        .background(
+                            Circle()
+                                .fill(Color.primary.opacity(0.06))
+                        )
+                }
+                .buttonStyle(PressScaleButtonStyle())
+                .accessibilityLabel("More actions")
+            }
         }
         .padding(12)
         .background(

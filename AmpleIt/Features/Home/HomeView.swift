@@ -13,6 +13,8 @@ struct HomeView: View {
     @Binding var selectedTab: AppTab
     let chromeNS: Namespace.ID
     let currentTab: AppTab
+    let currentPlayingSongID: UUID?
+    let onPlaySong: (Song) -> Void
     @Binding var isBackButtonActive: Bool
     @EnvironmentObject private var libraryStore: LibraryStore
 
@@ -43,6 +45,10 @@ struct HomeView: View {
                                 ForEach(resolveSongs(for: recentlyAddedIDs)) { song in
                                     SongCardRow(
                                         song: song,
+                                        isNowPlaying: song.id == currentPlayingSongID,
+                                        onTap: {
+                                            onPlaySong(song)
+                                        },
                                         onMore: {
                                             withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                                                 actionsSong = song
@@ -58,6 +64,10 @@ struct HomeView: View {
                                 ForEach(resolveSongs(for: recentlyPlayedIDs)) { song in
                                     SongCardRow(
                                         song: song,
+                                        isNowPlaying: song.id == currentPlayingSongID,
+                                        onTap: {
+                                            onPlaySong(song)
+                                        },
                                         onMore: {
                                             withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                                                 actionsSong = song
@@ -130,6 +140,8 @@ private struct HomePreviewWrapper: View {
             selectedTab: $selectedTab,
             chromeNS: chromeNS,
             currentTab: .home,
+            currentPlayingSongID: nil,
+            onPlaySong: { _ in },
             isBackButtonActive: $isBackButtonActive
         )
         .environmentObject(LibraryStore())
