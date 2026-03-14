@@ -6,20 +6,6 @@
 
 import SwiftUI
 
-enum AppTab: String, CaseIterable, Identifiable {
-    case home, songs, playlists, amp
-    var id: String { rawValue }
- 
-    var title: String {
-        switch self {
-        case .home: return "Home"
-        case .songs: return "Songs"
-        case .playlists: return "Playlists"
-        case .amp: return "Amp"
-        }
-    }
-}
-
 struct RootTabView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
     @State private var isSidebarOpen = false
