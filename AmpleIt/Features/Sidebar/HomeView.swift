@@ -18,8 +18,6 @@ struct HomeView: View {
     @Binding var isBackButtonActive: Bool
     @EnvironmentObject private var libraryStore: LibraryStore
 
-    private let recentlyAddedIDs = Array(MockData.songs.prefix(5)).map(\.id)
-    private let recentlyPlayedIDs = Array(MockData.songs.prefix(5)).map(\.id)
     @State private var actionsSong: Song? = nil
     @State private var editingSong: Song? = nil
     @State private var isOnboardingPresented: Bool = false
@@ -37,42 +35,47 @@ struct HomeView: View {
             )
         ) {
             ZStack {
+                if libraryStore.recentlyAddedSongs.isEmpty {
+                    HomeEmptyState()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+
                 ScrollView {
                     VStack(alignment: .leading, spacing: 30) {
-                        HomeSection(title: "Recently Added") {
-                            VStack(spacing: 10) {
-                                ForEach(resolveSongs(for: recentlyAddedIDs)) { song in
-                                    SongCardRow(
-                                        song: song,
-                                        isNowPlaying: song.id == currentPlayingSongID,
-                                        onTap: {
-                                            onPlaySong(song)
-                                        },
-                                        onMore: {
-                                            withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                                                actionsSong = song
+                        if !libraryStore.recentlyPlayedSongs.isEmpty {
+                            HomeSection(title: "Recently Played") {
+                                VStack(spacing: 10) {
+                                    ForEach(libraryStore.recentlyPlayedSongs) { song in
+                                        SongCardRow(
+                                            song: song,
+                                            isNowPlaying: song.id == currentPlayingSongID,
+                                            onTap: { onPlaySong(song) },
+                                            onMore: {
+                                                withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                                                    actionsSong = song
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        HomeSection(title: "Recently Played") {
-                            VStack(spacing: 10) {
-                                ForEach(resolveSongs(for: recentlyPlayedIDs)) { song in
-                                    SongCardRow(
-                                        song: song,
-                                        isNowPlaying: song.id == currentPlayingSongID,
-                                        onTap: {
-                                            onPlaySong(song)
-                                        },
-                                        onMore: {
-                                            withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                                                actionsSong = song
+                        if !libraryStore.recentlyAddedSongs.isEmpty {
+                            HomeSection(title: "Recently Added") {
+                                VStack(spacing: 10) {
+                                    ForEach(libraryStore.recentlyAddedSongs) { song in
+                                        SongCardRow(
+                                            song: song,
+                                            isNowPlaying: song.id == currentPlayingSongID,
+                                            onTap: { onPlaySong(song) },
+                                            onMore: {
+                                                withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                                                    actionsSong = song
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -120,10 +123,7 @@ struct HomeView: View {
         }
     }
 
-    private func resolveSongs(for ids: [UUID]) -> [Song] {
-        let byID = Dictionary(uniqueKeysWithValues: libraryStore.librarySongs.map { ($0.id, $0) })
-        return ids.compactMap { byID[$0] }
-    }
+
 }
 
 #Preview("Home") {
@@ -147,6 +147,27 @@ private struct HomePreviewWrapper: View {
             isBackButtonActive: $isBackButtonActive
         )
         .environmentObject(LibraryStore())
+    }
+}
+
+// MARK: - Empty State
+
+private struct HomeEmptyState: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "music.note.house")
+                .font(.system(size: 52, weight: .light))
+                .foregroundStyle(Color.primary.opacity(0.20))
+
+            Text("Your Library is Empty")
+                .font(.system(size: 18, weight: .semibold))
+
+            Text("Head to Songs to import your first track.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 40)
     }
 }
 

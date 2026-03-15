@@ -63,44 +63,56 @@ struct SongLibraryView: View {
             )
         ) {
             ZStack(alignment: .bottomTrailing) {
-                List {
-                    ForEach(filteredSongs) { song in
-                        Group {
-                            if isSelecting {
-                                selectableSongRow(song)
-                            } else {
-                                SongCardRow(
-                                    song: song,
-                                    isNowPlaying: song.id == currentPlayingSongID,
-                                    onTap: {
-                                        onPlaySong(song)
-                                    },
-                                    onEdit: { /* later */ },
-                                    onAddToPlaylist: { /* later */ },
-                                    onDelete: { /* later */ },
-                                    onMore: {
-                                        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                                            actionsSong = song
-                                        }
+                if libraryStore.librarySongs.isEmpty {
+                    SongLibraryEmptyState()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        if filteredSongs.isEmpty {
+                            SongLibraryNoResults(query: searchText)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
+                        } else {
+                            ForEach(filteredSongs) { song in
+                                Group {
+                                    if isSelecting {
+                                        selectableSongRow(song)
+                                    } else {
+                                        SongCardRow(
+                                            song: song,
+                                            isNowPlaying: song.id == currentPlayingSongID,
+                                            onTap: {
+                                                onPlaySong(song)
+                                            },
+                                            onEdit: { /* later */ },
+                                            onAddToPlaylist: { /* later */ },
+                                            onDelete: { /* later */ },
+                                            onMore: {
+                                                withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+                                                    actionsSong = song
+                                                }
+                                            }
+                                        )
                                     }
-                                )
+                                }
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(
+                                    top: AppLayout.verticalRowSpacing,
+                                    leading: AppLayout.horizontalPadding,
+                                    bottom: AppLayout.verticalRowSpacing,
+                                    trailing: AppLayout.horizontalPadding
+                                ))
+                                .listRowBackground(Color.clear)
                             }
                         }
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(
-                            top: AppLayout.verticalRowSpacing,
-                            leading: AppLayout.horizontalPadding,
-                            bottom: AppLayout.verticalRowSpacing,
-                            trailing: AppLayout.horizontalPadding
-                        ))
-                        .listRowBackground(Color.clear)
                     }
+                    .listStyle(.plain)
+                    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
+                    .safeAreaPadding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerScrollInset)
                 }
-                .listStyle(.plain)
-                .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
-                .safeAreaPadding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerScrollInset)
 
                 if !isSelecting {
                     FloatingAddButton {
@@ -378,6 +390,49 @@ struct SongLibraryView: View {
         }
         selectedSongIDs.removeAll()
         isSelecting = false
+    }
+}
+
+// MARK: - Empty States
+
+private struct SongLibraryEmptyState: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "music.note")
+                .font(.system(size: 52, weight: .light))
+                .foregroundStyle(Color.primary.opacity(0.20))
+
+            Text("No Songs Yet")
+                .font(.system(size: 18, weight: .semibold))
+
+            Text("Tap + to import an MP3 or WAV,\nor convert a track from YouTube.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 40)
+    }
+}
+
+private struct SongLibraryNoResults: View {
+    let query: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(Color.primary.opacity(0.20))
+
+            Text("No Results")
+                .font(.system(size: 17, weight: .semibold))
+
+            Text("Nothing matches \"\(query)\".")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+        .padding(.horizontal, 40)
     }
 }
 

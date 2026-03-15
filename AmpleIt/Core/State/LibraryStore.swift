@@ -4,6 +4,7 @@ final class LibraryStore: ObservableObject {
     @Published var librarySongs: [Song]
     @Published var playlists: [Playlist]
     @Published var queue: [Song] = []
+    @Published private(set) var recentlyPlayedIDs: [UUID] = []
 
     // Playlist -> ordered song ids
     @Published private(set) var playlistSongIDs: [UUID: [UUID]] = [:]
@@ -125,6 +126,23 @@ final class LibraryStore: ObservableObject {
 
     func replaceQueue(with songs: [Song]) {
         queue = songs
+    }
+
+    func recordPlay(songID: UUID) {
+        recentlyPlayedIDs.removeAll { $0 == songID }
+        recentlyPlayedIDs.insert(songID, at: 0)
+        if recentlyPlayedIDs.count > 5 {
+            recentlyPlayedIDs = Array(recentlyPlayedIDs.prefix(5))
+        }
+    }
+
+    var recentlyAddedSongs: [Song] {
+        Array(librarySongs.sorted { $0.dateAdded > $1.dateAdded }.prefix(5))
+    }
+
+    var recentlyPlayedSongs: [Song] {
+        let map = Dictionary(uniqueKeysWithValues: librarySongs.map { ($0.id, $0) })
+        return recentlyPlayedIDs.compactMap { map[$0] }
     }
 
     func setPlaylistArtwork(_ artwork: ArtworkAsset?, for playlistID: UUID) {

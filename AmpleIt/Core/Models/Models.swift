@@ -26,19 +26,22 @@ struct Song: Identifiable, Equatable {
     let artist: String
     let artwork: ArtworkAsset?
     let settings: SongSettings
+    let dateAdded: Date
 
     init(
         id: UUID,
         title: String,
         artist: String,
         artwork: ArtworkAsset? = nil,
-        settings: SongSettings = .default
+        settings: SongSettings = .default,
+        dateAdded: Date = Date()
     ) {
         self.id = id
         self.title = title
         self.artist = artist
         self.artwork = artwork
         self.settings = settings
+        self.dateAdded = dateAdded
     }
 }
 

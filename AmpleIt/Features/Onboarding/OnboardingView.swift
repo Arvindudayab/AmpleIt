@@ -5,106 +5,51 @@ import UIKit
 
 struct OnboardingPanel {
     let screenshotImageName: String
-    let fallbackIcon: String
-    let screenshotLabel: String
     let title: String
     let description: String
     let tip: String?
-
-    // ── Screenshot guidance (for the developer, not shown in the UI) ──────────
-    // Each `screenshotImageName` maps to an image asset you add to Assets.xcassets.
-    // Add them as PNG/JPEG with the names listed below, 2× or 3× resolution.
-    //
-    //  "Onboarding_Home"
-    //      → Home tab: nav bar with AmpleIt logo, "Recently Added" section showing
-    //        5 song card rows (artwork placeholder, title, artist, ellipsis button),
-    //        "Recently Played" section below, mini-player floating at bottom.
-    //
-    //  "Onboarding_Songs"
-    //      → Songs tab: search bar at top, list of song cards (one song showing
-    //        the animated NowPlayingIndicator), floating + FAB visible bottom-right,
-    //        Select button in top-right.
-    //
-    //  "Onboarding_SongEdit"
-    //      → SongEditView: square artwork placeholder at top (centered), Song Name
-    //        and Artist text fields below, Preset picker showing "Default", then
-    //        the five level sliders (Speed, Reverb, Bass, Mid, Treble) with values.
-    //
-    //  "Onboarding_Playlists"
-    //      → PlaylistsView: 2-column grid of playlist cards each with artwork
-    //        placeholder, playlist name, and song count. Floating + FAB bottom-right.
-    //
-    //  "Onboarding_PlaylistDetail"
-    //      → PlaylistDetailView: large square cover at top (centered), bold playlist
-    //        name, Play and Shuffle action buttons side by side, then 2–3 track rows
-    //        showing artwork, title, artist, and ellipsis menu button.
-    //
-    //  "Onboarding_Player"
-    //      → SongPlayerView: full-screen view with large square artwork placeholder,
-    //        song title and artist below it, static progress bar with timestamps,
-    //        three playback controls (backward, play/pause, forward), Queue button
-    //        bottom-right.
-    //
-    //  "Onboarding_Amp"
-    //      → AmpView: circular Amp logo icon (gradient fill) at top, "I'm Amp, ask
-    //        me anything" headline, "I can help with mixes…" subtext, two demo chat
-    //        bubbles (user + Amp replies), text input bar at the bottom with send button.
 }
 
 extension OnboardingPanel {
     static let all: [OnboardingPanel] = [
         .init(
             screenshotImageName: "Onboarding_Home",
-            fallbackIcon: "house.fill",
-            screenshotLabel: "Home Screen",
             title: "Welcome to AmpleIt",
             description: "Your personal music player with powerful per-song customization. Browse recently added and recently played tracks right from Home.",
             tip: "Tap ··· on any song card to access quick actions like Edit, Queue, and Add to Playlist."
         ),
         .init(
             screenshotImageName: "Onboarding_Songs",
-            fallbackIcon: "music.note.list",
-            screenshotLabel: "Song Library",
             title: "Your Song Library",
             description: "Browse and search all your tracks in one place. Use the + button to import audio from your device (MP3, WAV) or convert from YouTube.",
             tip: "Tap 'Select' in the top-right to choose and delete multiple songs at once."
         ),
         .init(
             screenshotImageName: "Onboarding_SongEdit",
-            fallbackIcon: "slider.horizontal.3",
-            screenshotLabel: "Song Editor",
             title: "Customize Every Track",
             description: "Tap ··· on any song and choose Edit to open the Song Editor. Adjust speed, reverb, bass, mid, and treble — all saved individually per song.",
             tip: "Pick a preset like Warm, Bass Boost, or Lo-Fi to apply a starting point quickly."
         ),
         .init(
             screenshotImageName: "Onboarding_Playlists",
-            fallbackIcon: "square.grid.2x2.fill",
-            screenshotLabel: "Playlists",
             title: "Create Playlists",
             description: "Organize your music into playlists with custom cover artwork. Tap + to create one, then add songs from your library.",
             tip: "Tap 'Select' to choose and delete multiple playlists at once."
         ),
         .init(
             screenshotImageName: "Onboarding_PlaylistDetail",
-            fallbackIcon: "music.note.list",
-            screenshotLabel: "Playlist Detail",
             title: "Play & Shuffle Playlists",
             description: "Open a playlist to see all its tracks. Hit Play to start in order or Shuffle to randomize — both load the full playlist into your queue.",
             tip: "Tap ··· to rename the playlist, select songs to remove, or replace the cover art."
         ),
         .init(
             screenshotImageName: "Onboarding_Player",
-            fallbackIcon: "play.circle.fill",
-            screenshotLabel: "Full-Screen Player",
             title: "The Player",
             description: "Tap any song or the mini-player to open the full-screen player. Skip tracks, toggle play/pause, and peek at your upcoming queue.",
             tip: "Swipe down anywhere on the player to collapse it back to the mini-player."
         ),
         .init(
             screenshotImageName: "Onboarding_Amp",
-            fallbackIcon: "sparkles",
-            screenshotLabel: "Amp",
             title: "Meet Amp",
             description: "Amp is your built-in AI music assistant. Ask for EQ tips, mixing advice, or help finding the right sound for any track.",
             tip: "Access Amp from the sidebar menu."
@@ -117,6 +62,7 @@ extension OnboardingPanel {
 struct OnboardingView: View {
     let onClose: () -> Void
     @State private var currentPage: Int = 0
+    @State private var fullscreenImageName: String? = nil
 
     private var isLastPage: Bool { currentPage == OnboardingPanel.all.count - 1 }
 
@@ -130,7 +76,12 @@ struct OnboardingView: View {
                     OnboardingPanelView(
                         panel: OnboardingPanel.all[index],
                         isLast: index == OnboardingPanel.all.count - 1,
-                        onGetStarted: onClose
+                        onGetStarted: onClose,
+                        onImageTap: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            fullscreenImageName = OnboardingPanel.all[index].screenshotImageName
+                        }
+                    }
                     )
                     .tag(index)
                 }
@@ -154,8 +105,20 @@ struct OnboardingView: View {
             .onTapGesture { onClose() }
             .accessibilityLabel("Close")
             .accessibilityAddTraits(.isButton)
+
+            // Zoomed image overlay
+            if let imageName = fullscreenImageName, let uiImage = UIImage(named: imageName) {
+                ZoomedImageOverlay(image: uiImage) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        fullscreenImageName = nil
+                    }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                .zIndex(100)
+            }
         }
-        .simultaneousGesture(dismissGesture)
+        .simultaneousGesture(fullscreenImageName == nil ? dismissGesture : nil)
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: fullscreenImageName)
     }
 
     private var dismissGesture: some Gesture {
@@ -175,18 +138,39 @@ private struct OnboardingPanelView: View {
     let panel: OnboardingPanel
     let isLast: Bool
     let onGetStarted: () -> Void
+    let onImageTap: () -> Void
+
+    // iPhone screen aspect ratio (portrait)
+    private let phoneAspect: CGFloat = 393.0 / 852.0
+
+    private var shotHeight: CGFloat {
+        min(UIScreen.main.bounds.height * 0.55, 410)
+    }
+    private var shotWidth: CGFloat {
+        shotHeight * phoneAspect
+    }
 
     var body: some View {
-        GeometryReader { geo in
-            VStack(alignment: .leading, spacing: 0) {
-                screenshotArea
-                    .frame(height: max(260, geo.size.height * 0.44))
-                    .padding(.horizontal, AppLayout.horizontalPadding)
+        VStack(alignment: .leading, spacing: 0) {
+                // Large portrait screenshot, centered at top
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    screenshotArea(width: shotWidth, height: shotHeight)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.22)) {
+                                onImageTap()
+                            }
+                        }
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 8)
 
-                VStack(alignment: .leading, spacing: 10) {
+                Spacer()
+
+                // Text content pinned to bottom, above page-dot indicator
+                VStack(alignment: .leading, spacing: 8) {
                     Text(panel.title)
-                        .font(.system(size: 26, weight: .bold))
-                        .padding(.top, 20)
+                        .font(.system(size: 22, weight: .bold))
 
                     Text(panel.description)
                         .font(.subheadline)
@@ -204,7 +188,7 @@ private struct OnboardingPanelView: View {
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(10)
+                        .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -244,53 +228,64 @@ private struct OnboardingPanelView: View {
                 }
                 .padding(.horizontal, AppLayout.horizontalPadding)
 
-                // Spacer absorbs leftover space above the page-dot indicator
-                Spacer(minLength: 44)
+                // Room for the TabView page-dot indicator
+                Spacer(minLength: 62)
             }
-        }
     }
 
-    private var screenshotArea: some View {
+    private func screenshotArea(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color("AppAccent").opacity(0.12),
-                            Color.primary.opacity(0.04)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            // Subtle phone-bezel ring
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color.primary.opacity(0.07))
+                .frame(width: width + 10, height: height + 10)
 
             if let uiImage = UIImage(named: panel.screenshotImageName) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .clipped()
-            } else {
-                // Placeholder — visible until you add the real screenshot asset
-                VStack(spacing: 14) {
-                    Image(systemName: panel.fallbackIcon)
-                        .font(.system(size: 46, weight: .light))
-                        .foregroundStyle(Color("AppAccent").opacity(0.55))
-                    Text(panel.screenshotLabel)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    Text("Add \"\(panel.screenshotImageName)\" to Assets.xcassets")
-                        .font(.caption2)
-                        .foregroundStyle(Color.secondary.opacity(0.55))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
-                }
+                    .frame(width: width, height: height)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(.primary.opacity(0.10), lineWidth: 1)
+                    )
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
-        )
+    }
+}
+
+// MARK: - Zoomed Image Overlay
+
+private struct ZoomedImageOverlay: View {
+    let image: UIImage
+    let onDismiss: () -> Void
+
+    private let phoneAspect: CGFloat = 393.0 / 852.0
+
+    private var imageHeight: CGFloat {
+        min(UIScreen.main.bounds.height * 0.82, 680)
+    }
+    private var imageWidth: CGFloat {
+        imageHeight * phoneAspect
+    }
+
+    var body: some View {
+        ZStack {
+            // Dim background — tap anywhere outside the image to dismiss
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .onTapGesture { onDismiss() }
+
+            // Zoomed image card — swallows its own taps so they don't reach the background
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: imageWidth, height: imageHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .shadow(color: .black.opacity(0.45), radius: 32, x: 0, y: 12)
+                .onTapGesture {}
+        }
     }
 }
 

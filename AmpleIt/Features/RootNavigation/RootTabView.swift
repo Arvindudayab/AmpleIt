@@ -13,7 +13,7 @@ struct RootTabView: View {
 
     // Mini-player mock state (wire to your real player later)
     @State private var nowPlayingID: UUID? = nil
-    @State private var isPlaying: Bool = true
+    @State private var isPlaying: Bool = false
     @State private var isSongPlayerPresented: Bool = false
     
     @State private var isBackButtonActive: Bool = false
@@ -83,8 +83,8 @@ struct RootTabView: View {
             if nowPlayingSong != nil && selectedTab != .amp {
                 LinearGradient(
                     colors: [
-                        Color("opposite").opacity(0.0),
-                        Color("opposite").opacity(0.95)
+                        Color("AppBackground").opacity(0.0),
+                        Color("AppBackground").opacity(0.95)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -182,19 +182,13 @@ struct RootTabView: View {
                 .animation(.spring(response: 0.35, dampingFraction: 0.9), value: nowPlayingID)
             }
         }
-        .onAppear {
-            if nowPlayingID == nil {
-                nowPlayingID = libraryStore.librarySongs.first?.id
-            }
-        }
         .onChange(of: libraryStore.librarySongs.map(\.id)) { _, _ in
-            let songs = libraryStore.librarySongs
-            guard let currentID = nowPlayingID else {
-                nowPlayingID = songs.first?.id
-                return
-            }
-            if !songs.contains(where: { $0.id == currentID }) {
-                nowPlayingID = songs.first?.id
+            guard let currentID = nowPlayingID else { return }
+            // If the currently playing song was deleted, clear playback entirely
+            if !libraryStore.librarySongs.contains(where: { $0.id == currentID }) {
+                nowPlayingID = nil
+                isPlaying = false
+                isSongPlayerPresented = false
             }
         }
         .fullScreenCover(isPresented: $isSongPlayerPresented) {
@@ -221,6 +215,7 @@ struct RootTabView: View {
     private func advancePlayback() {
         if let queued = libraryStore.popQueue() {
             nowPlayingID = queued.id
+            libraryStore.recordPlay(songID: queued.id)
             return
         }
         guard !libraryStore.librarySongs.isEmpty,
@@ -228,6 +223,7 @@ struct RootTabView: View {
               let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == currentID }) else { return }
         let next = libraryStore.librarySongs[(idx + 1) % libraryStore.librarySongs.count]
         nowPlayingID = next.id
+        libraryStore.recordPlay(songID: next.id)
     }
 
     private func stepBackPlayback() {
@@ -236,11 +232,13 @@ struct RootTabView: View {
               let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == currentID }) else { return }
         let prev = libraryStore.librarySongs[(idx - 1 + libraryStore.librarySongs.count) % libraryStore.librarySongs.count]
         nowPlayingID = prev.id
+        libraryStore.recordPlay(songID: prev.id)
     }
 
     private func playSong(_ song: Song) {
         nowPlayingID = song.id
         isPlaying = true
+        libraryStore.recordPlay(songID: song.id)
     }
 }
 

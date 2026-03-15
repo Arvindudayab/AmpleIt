@@ -1,17 +1,19 @@
 import Foundation
 
 enum MockData {
+    private static let baseDate = Date()
+
     static let songs: [Song] = [
-        .init(id: UUID(), title: "Midnight Drive", artist: "Nova"),
-        .init(id: UUID(), title: "Golden Hour", artist: "Aria"),
-        .init(id: UUID(), title: "Neon Skyline", artist: "Kairo"),
-        .init(id: UUID(), title: "Afterglow", artist: "Selene"),
-        .init(id: UUID(), title: "Slow Motion", artist: "The Satellites"),
-        .init(id: UUID(), title: "Ocean Glass", artist: "Mira"),
-        .init(id: UUID(), title: "Night Market", artist: "Juno"),
-        .init(id: UUID(), title: "Paper Planes", artist: "Lumen"),
-        .init(id: UUID(), title: "Static Bloom", artist: "Echo Park"),
-        .init(id: UUID(), title: "Rainy Streetlights", artist: "Orchid")
+        .init(id: UUID(), title: "Midnight Drive",    artist: "Nova",          dateAdded: baseDate.addingTimeInterval(-3_600)),
+        .init(id: UUID(), title: "Golden Hour",       artist: "Aria",          dateAdded: baseDate.addingTimeInterval(-7_200)),
+        .init(id: UUID(), title: "Neon Skyline",      artist: "Kairo",         dateAdded: baseDate.addingTimeInterval(-86_400)),
+        .init(id: UUID(), title: "Afterglow",         artist: "Selene",        dateAdded: baseDate.addingTimeInterval(-86_400 * 2)),
+        .init(id: UUID(), title: "Slow Motion",       artist: "The Satellites",dateAdded: baseDate.addingTimeInterval(-86_400 * 3)),
+        .init(id: UUID(), title: "Ocean Glass",       artist: "Mira",          dateAdded: baseDate.addingTimeInterval(-86_400 * 4)),
+        .init(id: UUID(), title: "Night Market",      artist: "Juno",          dateAdded: baseDate.addingTimeInterval(-86_400 * 5)),
+        .init(id: UUID(), title: "Paper Planes",      artist: "Lumen",         dateAdded: baseDate.addingTimeInterval(-86_400 * 6)),
+        .init(id: UUID(), title: "Static Bloom",      artist: "Echo Park",     dateAdded: baseDate.addingTimeInterval(-86_400 * 7)),
+        .init(id: UUID(), title: "Rainy Streetlights",artist: "Orchid",        dateAdded: baseDate.addingTimeInterval(-86_400 * 8)),
     ]
 
     static let playlists: [Playlist] = [
