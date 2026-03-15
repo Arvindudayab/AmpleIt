@@ -47,6 +47,14 @@ final class LibraryStore: ObservableObject {
         librarySongs.insert(importedSong, at: 0)
     }
 
+    func addSongToLibrary(_ song: Song, atBeginning: Bool = true) {
+        if atBeginning {
+            librarySongs.insert(song, at: 0)
+        } else {
+            librarySongs.append(song)
+        }
+    }
+
     func delete(songID: UUID) {
         librarySongs.removeAll { $0.id == songID }
         queue.removeAll { $0.id == songID }
@@ -106,6 +114,17 @@ final class LibraryStore: ObservableObject {
         for queueIndex in queue.indices where queue[queueIndex].id == updated.id {
             queue[queueIndex] = updated
         }
+    }
+
+    func renamePlaylist(id: UUID, name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let index = playlists.firstIndex(where: { $0.id == id }) else { return }
+        let old = playlists[index]
+        playlists[index] = Playlist(id: old.id, name: trimmed, count: old.count)
+    }
+
+    func replaceQueue(with songs: [Song]) {
+        queue = songs
     }
 
     func setPlaylistArtwork(_ artwork: ArtworkAsset?, for playlistID: UUID) {

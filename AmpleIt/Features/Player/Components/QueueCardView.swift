@@ -3,6 +3,7 @@ import SwiftUI
 struct QueueCardView: View {
     let queueSongs: [Song]
     let onClose: () -> Void
+    let onClearQueue: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -10,6 +11,15 @@ struct QueueCardView: View {
                 Text("Queue")
                     .font(.headline.weight(.semibold))
                 Spacer()
+                if !queueSongs.isEmpty {
+                    Button("Clear") {
+                        onClearQueue()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 6)
+                }
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .semibold))
@@ -34,8 +44,8 @@ struct QueueCardView: View {
                         ForEach(queueSongs) { song in
                             HStack(spacing: 10) {
                                 SongArtworkView(song: song)
-                                    .frame(width: 34, height: 34)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .frame(width: 28, height: 28)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(song.title)

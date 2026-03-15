@@ -40,10 +40,13 @@ struct PlaylistTrackRow: View {
     let onTap: () -> Void
     let onAddToQueue: () -> Void
     let onRemoveFromPlaylist: () -> Void
+    var isSelecting: Bool = false
+    var isSelected: Bool = false
+    var onSelectToggle: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 14) {
-            Button(action: onTap) {
+            Button(action: isSelecting ? { onSelectToggle?() } : onTap) {
                 HStack(spacing: 14) {
                     SongArtworkView(song: song)
                         .frame(width: 56, height: 56)
@@ -72,20 +75,31 @@ struct PlaylistTrackRow: View {
             }
             .buttonStyle(.plain)
 
-            Menu {
-                Button("Add to Queue", systemImage: "text.line.first.and.arrowtriangle.forward") {
-                    onAddToQueue()
+            if isSelecting {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? Color("AppAccent") : Color.primary.opacity(0.12))
+                    Image(systemName: isSelected ? "checkmark" : "circle")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.6))
                 }
-                Button("Remove from Playlist", systemImage: "minus.circle", role: .destructive) {
-                    onRemoveFromPlaylist()
+                .frame(width: 24, height: 24)
+            } else {
+                Menu {
+                    Button("Add to Queue", systemImage: "text.line.first.and.arrowtriangle.forward") {
+                        onAddToQueue()
+                    }
+                    Button("Remove from Playlist", systemImage: "minus.circle", role: .destructive) {
+                        onRemoveFromPlaylist()
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundStyle(.primary)
+                        .frame(width: 32, height: 32)
                 }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 18, weight: .regular))
-                    .foregroundStyle(.primary)
-                    .frame(width: 32, height: 32)
+                .accessibilityLabel("Song actions")
             }
-            .accessibilityLabel("Song actions")
         }
         .padding(.vertical, 12)
     }

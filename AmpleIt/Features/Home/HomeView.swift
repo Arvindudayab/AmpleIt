@@ -22,6 +22,7 @@ struct HomeView: View {
     private let recentlyPlayedIDs = Array(MockData.songs.prefix(5)).map(\.id)
     @State private var actionsSong: Song? = nil
     @State private var editingSong: Song? = nil
+    @State private var isOnboardingPresented: Bool = false
 
     var body: some View {
         AppScreenContainer(
@@ -30,10 +31,8 @@ struct HomeView: View {
             chromeNS: chromeNS,
             showsTrailingPlaceholder: false,
             trailingToolbar: AnyView(
-                AmpShortcutButton {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-                        selectedTab = .amp
-                    }
+                HelpButton {
+                    isOnboardingPresented = true
                 }
             )
         ) {
@@ -116,6 +115,9 @@ struct HomeView: View {
                 }
             }
         }
+        .fullScreenCover(isPresented: $isOnboardingPresented) {
+            OnboardingView(onClose: { isOnboardingPresented = false })
+        }
     }
 
     private func resolveSongs(for ids: [UUID]) -> [Song] {
@@ -148,25 +150,17 @@ private struct HomePreviewWrapper: View {
     }
 }
 
-private struct AmpShortcutButton: View {
+private struct HelpButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 17, weight: .semibold))
+            Image(systemName: "questionmark")
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.primary)
                 .frame(width: 36, height: 36)
-                .background(
-                    Circle()
-                        .fill(Color("AppAccent").opacity(0.14))
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(Color("AppAccent").opacity(0.28), lineWidth: 1)
-                )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Open Amp")
+        .accessibilityLabel("How to use AmpleIt")
     }
 }

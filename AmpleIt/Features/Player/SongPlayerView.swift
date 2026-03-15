@@ -122,18 +122,29 @@ struct SongPlayerView: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "list.bullet")
-                                    .font(.system(size: 20, weight: .semibold))
-                                Text("Queue")
                                     .font(.system(size: 17, weight: .semibold))
+                                Text("Queue")
+                                    .font(.system(size: 16, weight: .semibold))
                             }
-                            .foregroundStyle(Color.primary)
-                            .padding(.horizontal, 14)
-                            .frame(height: 52)
-                            .background(Color("AppAccent").opacity(0.14), in: Capsule())
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 20)
+                            .frame(height: 46)
+                            .background(.ultraThinMaterial, in: Capsule())
                             .overlay(
                                 Capsule()
-                                    .strokeBorder(Color("AppAccent"), lineWidth: 1)
+                                    .strokeBorder(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.white.opacity(0.30),
+                                                Color.white.opacity(0.06)
+                                            ],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        ),
+                                        lineWidth: 1
+                                    )
                             )
+                            .shadow(color: .black.opacity(0.14), radius: 10, x: 0, y: 5)
                         }
                         .buttonStyle(.plain)
                     }
@@ -155,6 +166,12 @@ struct SongPlayerView: View {
                 QueueCardView(
                     queueSongs: queueSongs,
                     onClose: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                            isQueueCardPresented = false
+                        }
+                    },
+                    onClearQueue: {
+                        libraryStore.replaceQueue(with: [])
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
                             isQueueCardPresented = false
                         }

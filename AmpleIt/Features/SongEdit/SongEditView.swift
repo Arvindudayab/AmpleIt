@@ -156,15 +156,13 @@ struct SongEditView: View {
     }
 
     private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !artist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        true
     }
 
     @discardableResult
     private func persistChanges() -> Bool {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedArtist = artist.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty, !trimmedArtist.isEmpty else { return false }
         let updatedSong = Song(
             id: song.id,
             title: trimmedTitle,

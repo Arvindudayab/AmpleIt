@@ -46,11 +46,6 @@ struct PlaylistCardSelectable: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             PlaylistCard(playlist: playlist, artwork: artwork, artworkSide: artworkSide)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(isSelected ? Color("AppAccent") : Color.primary.opacity(0.12), lineWidth: 2)
-                )
-
             ZStack {
                 Circle()
                     .fill(isSelected ? Color("AppAccent") : Color.primary.opacity(0.12))

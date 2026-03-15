@@ -23,7 +23,11 @@ struct PlaylistDetailView: View {
     @State private var selectedArtworkItem: PhotosPickerItem? = nil
     @State private var isArtworkPickerPresented: Bool = false
     @State private var isAddSongsPresented: Bool = false
-    @State private var shuffledSongs: [Song]? = nil
+    @State private var isSelecting: Bool = false
+    @State private var selectedTrackIDs: Set<UUID> = []
+    @State private var isRemoveConfirmationPresented: Bool = false
+    @State private var isRenameAlertPresented: Bool = false
+    @State private var renameText: String = ""
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -32,7 +36,8 @@ struct PlaylistDetailView: View {
             isSidebarOpen: $isSidebarOpen,
             chromeNS: chromeNS,
             wrapInNavigationStack: false,
-            showsSidebarButton: false
+            showsSidebarButton: false,
+            showsTrailingPlaceholder: false
         ) {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
@@ -50,13 +55,14 @@ struct PlaylistDetailView: View {
                         // Play / Shuffle buttons
                         HStack(spacing: 14) {
                             PlaylistActionButton(title: "Play", systemImage: "play.fill") {
-                                print("Play \(playlist.name)")
+                                playPlaylist()
                             }
+                            .disabled(currentSongs.isEmpty)
 
                             PlaylistActionButton(title: "Shuffle", systemImage: "shuffle") {
-                                print("Shuffle \(playlist.name)")
-                                shuffledSongs = currentSongs.shuffled()
+                                shufflePlaylist()
                             }
+                            .disabled(currentSongs.isEmpty)
                         }
                         .padding(.horizontal, AppLayout.horizontalPadding)
                         .padding(.top, 2)
@@ -86,6 +92,11 @@ struct PlaylistDetailView: View {
                                         },
                                         onRemoveFromPlaylist: {
                                             libraryStore.removeSong(songID: song.id, from: playlist.id)
+                                        },
+                                        isSelecting: isSelecting,
+                                        isSelected: selectedTrackIDs.contains(song.id),
+                                        onSelectToggle: {
+                                            toggleTrackSelection(for: song.id)
                                         }
                                     )
                                     Divider().opacity(0.5)
@@ -108,13 +119,15 @@ struct PlaylistDetailView: View {
                     }
                 }
 
-                FloatingAddButton(systemImage: "plus") {
-                    isAddSongsPresented = true
+                if !isSelecting {
+                    FloatingAddButton(systemImage: "plus") {
+                        isAddSongsPresented = true
+                    }
+                    .padding(.trailing, AppLayout.horizontalPadding)
+                    .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
                 }
-                .padding(.trailing, AppLayout.horizontalPadding)
-                .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
             }
-            
+
             .navigationBarBackButtonHidden(true)
             .simultaneousGesture(backSwipeGesture)
             .toolbar {
@@ -130,6 +143,70 @@ struct PlaylistDetailView: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel("Back")
                 }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isSelecting {
+                        Button("Done") {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                                isSelecting = false
+                                selectedTrackIDs.removeAll()
+                            }
+                        }
+                    } else {
+                        Menu {
+                            Button {
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                                    isSelecting = true
+                                }
+                            } label: {
+                                Label("Select Songs", systemImage: "checkmark.circle")
+                            }
+                            .disabled(currentSongs.isEmpty)
+
+                            Button {
+                                renameText = playlist.name
+                                isRenameAlertPresented = true
+                            } label: {
+                                Label("Rename", systemImage: "pencil")
+                            }
+
+                            Divider()
+
+                            Button {
+                                for song in currentSongs {
+                                    libraryStore.addToQueue(song: song)
+                                }
+                            } label: {
+                                Label("Queue Playlist", systemImage: "text.line.first.and.arrowtriangle.forward")
+                            }
+                            .disabled(currentSongs.isEmpty)
+
+                            Button {
+                                showArtworkOverlay = false
+                                isArtworkPickerPresented = true
+                            } label: {
+                                Label("Replace Cover", systemImage: "photo")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .frame(width: 36, height: 36)
+                        }
+                        .accessibilityLabel("Playlist actions")
+                    }
+                }
+
+                if isSelecting {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button(role: .destructive) {
+                            isRemoveConfirmationPresented = true
+                        } label: {
+                            Text("Remove (\(selectedTrackIDs.count))")
+                        }
+                        .disabled(selectedTrackIDs.isEmpty)
+                    }
+                }
             }
             .tint(Color.primary)
             .onAppear {
@@ -138,6 +215,8 @@ struct PlaylistDetailView: View {
             .onDisappear {
                 isBackButtonActive = false
                 showArtworkOverlay = false
+                isSelecting = false
+                selectedTrackIDs.removeAll()
             }
             .photosPicker(
                 isPresented: $isArtworkPickerPresented,
@@ -163,8 +242,24 @@ struct PlaylistDetailView: View {
                     }
                 }
             }
-            .onChange(of: libraryStore.songs(in: playlist.id).map(\.id)) { _, _ in
-                shuffledSongs = nil
+            .confirmationDialog(
+                "Remove selected songs?",
+                isPresented: $isRemoveConfirmationPresented,
+                titleVisibility: .visible
+            ) {
+                Button("Remove", role: .destructive) {
+                    removeSelectedSongs()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("These songs will be removed from this playlist.")
+            }
+            .alert("Rename Playlist", isPresented: $isRenameAlertPresented) {
+                TextField("Name", text: $renameText)
+                Button("Rename") {
+                    libraryStore.renamePlaylist(id: playlist.id, name: renameText)
+                }
+                Button("Cancel", role: .cancel) {}
             }
         }
     }
@@ -185,7 +280,7 @@ struct PlaylistDetailView: View {
         }
         dismiss()
     }
-    
+
     private var playlistCoverSection: some View {
         Button {
             // First tap reveals the overlay (Replace prompt). Actual replacement happens when
@@ -246,12 +341,12 @@ struct PlaylistDetailView: View {
     }
 
     private var estimatedMinutes: Int {
-        // Simple estimate since Song doesn’t yet have duration
+        // Simple estimate since Song doesn't yet have duration
         max(1, currentSongs.count * 3)
     }
 
     private var currentSongs: [Song] {
-        shuffledSongs ?? libraryStore.songs(in: playlist.id)
+        libraryStore.songs(in: playlist.id)
     }
 
     private var availableLibrarySongs: [Song] {
@@ -266,7 +361,38 @@ struct PlaylistDetailView: View {
             guard let song = songsByID[songID] else { continue }
             libraryStore.addSong(song, to: playlist.id)
         }
-        shuffledSongs = nil
+    }
+
+    // Plays the first song in the playlist and loads the rest into the queue.
+    private func playPlaylist() {
+        guard let first = currentSongs.first else { return }
+        libraryStore.replaceQueue(with: Array(currentSongs.dropFirst()))
+        onPlaySong(first)
+    }
+
+    // Shuffles the playlist into the queue without altering the displayed order.
+    private func shufflePlaylist() {
+        guard !currentSongs.isEmpty else { return }
+        var shuffled = currentSongs.shuffled()
+        let first = shuffled.removeFirst()
+        libraryStore.replaceQueue(with: shuffled)
+        onPlaySong(first)
+    }
+
+    private func toggleTrackSelection(for id: UUID) {
+        if selectedTrackIDs.contains(id) {
+            selectedTrackIDs.remove(id)
+        } else {
+            selectedTrackIDs.insert(id)
+        }
+    }
+
+    private func removeSelectedSongs() {
+        for id in selectedTrackIDs {
+            libraryStore.removeSong(songID: id, from: playlist.id)
+        }
+        selectedTrackIDs.removeAll()
+        isSelecting = false
     }
 }
 

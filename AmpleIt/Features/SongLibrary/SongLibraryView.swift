@@ -20,6 +20,7 @@ struct SongLibraryView: View {
     @State private var searchText: String = ""
     @State private var actionsSong: Song? = nil
     @State private var editingSong: Song? = nil
+    @State private var importedDraftSong: Song? = nil
     @State private var isAddMenuPresented: Bool = false
     @State private var isYTUploadActive: Bool = false
     @State private var isDeviceImporterPresented: Bool = false
@@ -193,6 +194,14 @@ struct SongLibraryView: View {
                 }
             }
         }
+        .fullScreenCover(item: $importedDraftSong) { song in
+            NavigationStack {
+                SongEditView(song: song, isBackButtonActive: $isBackButtonActive) { updatedSong in
+                    libraryStore.addSongToLibrary(updatedSong)
+                    importedDraftSong = nil
+                }
+            }
+        }
     }
 
     private func selectableSongRow(_ song: Song) -> some View {
@@ -201,6 +210,9 @@ struct SongLibraryView: View {
         return SongCardRow(
             song: song,
             isNowPlaying: song.id == currentPlayingSongID,
+            onTap: {
+                toggleSelection(for: song.id)
+            },
             onMore: nil
         )
             .overlay(
@@ -220,10 +232,6 @@ struct SongLibraryView: View {
                 }
                 .frame(width: 24, height: 24)
                 .padding(8)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                toggleSelection(for: song.id)
             }
     }
 
@@ -328,18 +336,31 @@ struct SongLibraryView: View {
         }
 
         let hasAccess = url.startAccessingSecurityScopedResource()
-        defer {
+        guard FileManager.default.isReadableFile(atPath: url.path) else {
             if hasAccess {
                 url.stopAccessingSecurityScopedResource()
             }
-        }
-
-        guard FileManager.default.isReadableFile(atPath: url.path) else {
             importAlertMessage = "The selected file is not readable."
             return
         }
 
-        libraryStore.importSong(fromFileURL: url)
+        Task {
+            let draftSong = buildImportedSongDraft(from: url)
+            await MainActor.run {
+                if hasAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+                importedDraftSong = draftSong
+            }
+        }
+    }
+
+    private func buildImportedSongDraft(from url: URL) -> Song {
+        return Song(
+            id: UUID(),
+            title: url.deletingPathExtension().lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines),
+            artist: ""
+        )
     }
 
     private func toggleSelection(for id: UUID) {
