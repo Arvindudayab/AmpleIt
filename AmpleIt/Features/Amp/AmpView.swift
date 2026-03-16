@@ -161,23 +161,3 @@ struct AmpView: View {
     }
 
 }
-
-#Preview("Amp") {
-    AmpPreviewWrapper()
-}
-
-private struct AmpPreviewWrapper: View {
-    @State private var isSidebarOpen: Bool = false
-    @Namespace private var chromeNS
-
-    var body: some View {
-        NavigationStack {
-            AmpView(
-                isSidebarOpen: $isSidebarOpen,
-                chromeNS: chromeNS,
-                currentSong: MockData.songs.first,
-                onOpenNowPlaying: {}
-            )
-        }
-    }
-}

@@ -8,7 +8,11 @@ struct SongPlayerView: View {
     let onNext: () -> Void
     let onPrev: () -> Void
     @EnvironmentObject private var libraryStore: LibraryStore
+    @EnvironmentObject private var audioPlayer: AudioPlayerService
     @State private var isQueueCardPresented: Bool = false
+    @State private var progressBarWidth: CGFloat = 0
+    @State private var isScrubbing: Bool = false
+    @State private var scrubProgress: Double = 0
 
     private var song: Song? {
         libraryStore.librarySongs.first(where: { $0.id == songID })
@@ -66,19 +70,53 @@ struct SongPlayerView: View {
                     .padding(.horizontal, AppLayout.horizontalPadding)
 
                     VStack(spacing: 8) {
+                        // Progress track
                         RoundedRectangle(cornerRadius: 2)
                             .fill(Color.primary.opacity(0.25))
-                            .frame(height: 4)
+                            .frame(height: isScrubbing ? 6 : 4)
                             .overlay(alignment: .leading) {
+                                let progress = isScrubbing
+                                    ? scrubProgress
+                                    : (audioPlayer.duration > 0 ? min(audioPlayer.currentTime / audioPlayer.duration, 1.0) : 0)
                                 RoundedRectangle(cornerRadius: 2)
                                     .fill(Color.primary.opacity(0.75))
-                                    .frame(width: 140, height: 4)
+                                    .frame(width: progressBarWidth * progress, height: isScrubbing ? 6 : 4)
+                                    .animation(isScrubbing ? nil : .linear(duration: 0.05), value: progress)
                             }
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear
+                                        .onAppear { progressBarWidth = geo.size.width }
+                                        .onChange(of: geo.size.width) { _, w in progressBarWidth = w }
+                                }
+                            )
+                            .animation(.easeInOut(duration: 0.12), value: isScrubbing)
+                            .contentShape(Rectangle().inset(by: -10))
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        guard progressBarWidth > 0 else { return }
+                                        isScrubbing = true
+                                        scrubProgress = max(0, min(1, value.location.x / progressBarWidth))
+                                    }
+                                    .onEnded { value in
+                                        guard audioPlayer.duration > 0, progressBarWidth > 0 else {
+                                            isScrubbing = false
+                                            return
+                                        }
+                                        let p = max(0, min(1, value.location.x / progressBarWidth))
+                                        audioPlayer.seek(to: p * audioPlayer.duration)
+                                        isScrubbing = false
+                                    }
+                            )
 
+                        let displayTime = isScrubbing
+                            ? scrubProgress * audioPlayer.duration
+                            : audioPlayer.currentTime
                         HStack {
-                            Text("4:40")
+                            Text(formatTime(displayTime))
                             Spacer()
-                            Text("-4:50")
+                            Text("-\(formatTime(max(audioPlayer.duration - displayTime, 0)))")
                         }
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -186,6 +224,11 @@ struct SongPlayerView: View {
         .simultaneousGesture(dismissGesture)
     }
 
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let total = Int(max(0, seconds))
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
     private var dismissGesture: some Gesture {
         DragGesture(minimumDistance: 16, coordinateSpace: .global)
             .onEnded { value in
@@ -197,16 +240,4 @@ struct SongPlayerView: View {
                 onClose()
             }
     }
-}
-
-#Preview("Song Player") {
-    SongPlayerView(
-        songID: MockData.songs.first!.id,
-        queueSongs: MockData.songs,
-        isPlaying: .constant(true),
-        onClose: {},
-        onNext: {},
-        onPrev: {}
-    )
-    .environmentObject(LibraryStore())
 }

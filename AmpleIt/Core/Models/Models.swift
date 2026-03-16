@@ -27,6 +27,7 @@ struct Song: Identifiable, Equatable {
     let artwork: ArtworkAsset?
     let settings: SongSettings
     let dateAdded: Date
+    let fileURL: URL?
 
     init(
         id: UUID,
@@ -34,7 +35,8 @@ struct Song: Identifiable, Equatable {
         artist: String,
         artwork: ArtworkAsset? = nil,
         settings: SongSettings = .default,
-        dateAdded: Date = Date()
+        dateAdded: Date = Date(),
+        fileURL: URL? = nil
     ) {
         self.id = id
         self.title = title
@@ -42,6 +44,7 @@ struct Song: Identifiable, Equatable {
         self.artwork = artwork
         self.settings = settings
         self.dateAdded = dateAdded
+        self.fileURL = fileURL
     }
 }
 

@@ -175,7 +175,9 @@ struct SongEditView: View {
                 bass: bass,
                 mid: mid,
                 treble: treble
-            )
+            ),
+            dateAdded: song.dateAdded,
+            fileURL: song.fileURL
         )
         onSave(updatedSong)
         return true
@@ -364,11 +366,5 @@ struct SongEditView: View {
 
     private func dismissKeyboard() {
         focusedField = nil
-    }
-}
-
-#Preview("Song Edit") {
-    NavigationStack {
-        SongEditView(song: MockData.songs.first!, isBackButtonActive: .constant(false)) { _ in }
     }
 }

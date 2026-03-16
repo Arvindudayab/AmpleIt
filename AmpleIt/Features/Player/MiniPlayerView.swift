@@ -8,11 +8,13 @@
 import SwiftUI
 
 struct MiniPlayerView: View {
-    let song: Song
+    let song: Song?
     @Binding var isPlaying: Bool
     let onTap: () -> Void
     let onNext: () -> Void
     let onPrev: () -> Void
+
+    private var isIdle: Bool { song == nil }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -29,29 +31,44 @@ struct MiniPlayerView: View {
         )
         .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .onTapGesture(perform: onTap)
+        .onTapGesture { if !isIdle { onTap() } }
     }
 
     private var artwork: some View {
-        SongArtworkView(song: song)
-            .frame(width: 46, height: 46)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
+        Group {
+            if let song {
+                SongArtworkView(song: song)
+            } else {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
-            )
+                    .fill(Color.primary.opacity(0.06))
+                    .overlay(
+                        Image(systemName: "music.note")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    )
+            }
+        }
+        .frame(width: 46, height: 46)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private var titles: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(song.title)
+            Text(song?.title ?? "Now Playing")
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isIdle ? .secondary : .primary)
                 .lineLimit(1)
 
-            Text(song.artist)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            if let artist = song?.artist {
+                Text(artist)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
     }
 
@@ -63,6 +80,8 @@ struct MiniPlayerView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
+            .disabled(isIdle)
+            .opacity(isIdle ? 0.3 : 1)
 
             Button {
                 isPlaying.toggle()
@@ -72,6 +91,8 @@ struct MiniPlayerView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
+            .disabled(isIdle)
+            .opacity(isIdle ? 0.3 : 1)
 
             Button(action: onNext) {
                 Image(systemName: "forward.fill")
@@ -79,6 +100,8 @@ struct MiniPlayerView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
+            .disabled(isIdle)
+            .opacity(isIdle ? 0.3 : 1)
         }
         .foregroundStyle(.primary)
     }
@@ -93,24 +116,5 @@ struct MiniPlayerView: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-    }
-}
-
-#Preview("Mini Player") {
-    ZStack {
-        Color("AppBackground").opacity(0.1).ignoresSafeArea()
-
-        VStack {
-            Spacer()
-            MiniPlayerView(
-                song: MockData.songs.first!,
-                isPlaying: .constant(true),
-                onTap: {},
-                onNext: {},
-                onPrev: {}
-            )
-            .padding(.horizontal, 14)
-            .padding(.bottom, 12)
-        }
     }
 }

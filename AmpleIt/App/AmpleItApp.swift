@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct AmpleItApp: App {
     @StateObject private var libraryStore = LibraryStore()
+    @StateObject private var audioPlayer = AudioPlayerService()
     @State private var isLoading = true
 
     var body: some Scene {
@@ -21,6 +22,7 @@ struct AmpleItApp: App {
                 } else {
                     RootTabView()
                         .environmentObject(libraryStore)
+                        .environmentObject(audioPlayer)
                         .transition(.opacity)
                 }
             }

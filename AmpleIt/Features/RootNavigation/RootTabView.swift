@@ -8,22 +8,28 @@ import SwiftUI
 
 struct RootTabView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
+    @EnvironmentObject private var audioPlayer: AudioPlayerService
     @State private var isSidebarOpen = false
     @State private var selectedTab: AppTab = .home
 
-    // Mini-player mock state (wire to your real player later)
     @State private var nowPlayingID: UUID? = nil
-    @State private var isPlaying: Bool = false
     @State private var isSongPlayerPresented: Bool = false
-    
     @State private var isBackButtonActive: Bool = false
 
     @Namespace private var chromeNS
-    @Namespace private var miniPlayerNS 
+    @Namespace private var miniPlayerNS
 
     private var nowPlayingSong: Song? {
         guard let nowPlayingID else { return nil }
         return libraryStore.librarySongs.first(where: { $0.id == nowPlayingID })
+    }
+
+    /// A binding that forwards play/pause toggles to the audio service.
+    private var isPlayingBinding: Binding<Bool> {
+        Binding(
+            get: { audioPlayer.isPlaying },
+            set: { newValue in newValue ? audioPlayer.play() : audioPlayer.pause() }
+        )
     }
 
     var body: some View {
@@ -79,8 +85,8 @@ struct RootTabView: View {
                 chromeNS: chromeNS
             )
             
-            // Bottom tint (Option 2): subtle fade behind the mini-player
-            if nowPlayingSong != nil && selectedTab != .amp {
+            // Bottom tint: subtle fade behind the mini-player
+            if selectedTab != .amp {
                 LinearGradient(
                     colors: [
                         Color("AppBackground").opacity(0.0),
@@ -93,17 +99,16 @@ struct RootTabView: View {
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 .ignoresSafeArea(.container, edges: .bottom)
                 .allowsHitTesting(false)
-                .transition(.opacity)
             }
 
-            // Mini-player floating above bottom safe area
-            if let song = nowPlayingSong, selectedTab != .amp {
+            // Mini-player — always visible on non-amp tabs; idle state when no song is loaded
+            if selectedTab != .amp {
                 VStack {
                     Spacer()
 
                     ZStack(alignment: .bottom) {
                         if isBackButtonActive {
-                            // Playlist-only: compact bar (icon + shrinking mini-player)
+                            // Compact bar: sidebar icon + shrinking mini-player
                             HStack(spacing: 12) {
                                 Button {
                                     withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
@@ -112,9 +117,7 @@ struct RootTabView: View {
                                 } label: {
                                     ZStack {
                                         Circle()
-                                            .fill(
-                                                Color("AppBackground")
-                                        )
+                                            .fill(Color("AppBackground"))
 
                                         Image("SoundAlphaV1")
                                             .renderingMode(.template)
@@ -130,7 +133,6 @@ struct RootTabView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("Open sidebar")
-                                // Animate icon appearing
                                 .transition(
                                     .move(edge: .bottom)
                                     .combined(with: .opacity)
@@ -138,57 +140,46 @@ struct RootTabView: View {
                                 )
 
                                 MiniPlayerView(
-                                    song: song,
-                                    isPlaying: $isPlaying,
-                                    onTap: {
-                                        isSongPlayerPresented = true
-                                    },
-                                    onNext: {
-                                        advancePlayback()
-                                    },
-                                    onPrev: {
-                                        stepBackPlayback()
-                                    }
+                                    song: nowPlayingSong,
+                                    isPlaying: isPlayingBinding,
+                                    onTap: { isSongPlayerPresented = true },
+                                    onNext: { advancePlayback() },
+                                    onPrev: { stepBackPlayback() }
                                 )
-                                // Matched-geometry makes the mini-player smoothly shrink/reposition
                                 .matchedGeometryEffect(id: "miniPlayer", in: miniPlayerNS)
                                 .frame(maxWidth: .infinity)
                             }
                         } else {
                             // Default: full-width mini-player
                             MiniPlayerView(
-                                song: song,
-                                isPlaying: $isPlaying,
-                                onTap: {
-                                    isSongPlayerPresented = true
-                                },
-                                onNext: {
-                                    advancePlayback()
-                                },
-                                onPrev: {
-                                    stepBackPlayback()
-                                }
+                                song: nowPlayingSong,
+                                isPlaying: isPlayingBinding,
+                                onTap: { isSongPlayerPresented = true },
+                                onNext: { advancePlayback() },
+                                onPrev: { stepBackPlayback() }
                             )
                             .matchedGeometryEffect(id: "miniPlayer", in: miniPlayerNS)
                         }
                     }
-                    // Keep the bottom position consistent with the rest of the app
                     .padding(.horizontal, 14)
                     .padding(.bottom, 12)
-                    // Drive the layout change animation
                     .animation(.spring(response: 0.35, dampingFraction: 0.9), value: isBackButtonActive)
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
                 .animation(.spring(response: 0.35, dampingFraction: 0.9), value: nowPlayingID)
             }
         }
         .onChange(of: libraryStore.librarySongs.map(\.id)) { _, _ in
             guard let currentID = nowPlayingID else { return }
-            // If the currently playing song was deleted, clear playback entirely
             if !libraryStore.librarySongs.contains(where: { $0.id == currentID }) {
+                audioPlayer.pause()
                 nowPlayingID = nil
-                isPlaying = false
                 isSongPlayerPresented = false
+            }
+        }
+        .onAppear {
+            audioPlayer.onPlaybackFinished = { [weak audioPlayer] in
+                guard audioPlayer != nil else { return }
+                self.advancePlayback()
             }
         }
         .fullScreenCover(isPresented: $isSongPlayerPresented) {
@@ -196,7 +187,7 @@ struct RootTabView: View {
                 SongPlayerView(
                     songID: songID,
                     queueSongs: libraryStore.queue,
-                    isPlaying: $isPlaying,
+                    isPlaying: isPlayingBinding,
                     onClose: {
                         isSongPlayerPresented = false
                     },
@@ -208,22 +199,24 @@ struct RootTabView: View {
                     }
                 )
                 .environmentObject(libraryStore)
+                .environmentObject(audioPlayer)
             }
         }
     }
 
     private func advancePlayback() {
+        let nextSong: Song?
         if let queued = libraryStore.popQueue() {
-            nowPlayingID = queued.id
-            libraryStore.recordPlay(songID: queued.id)
-            return
+            nextSong = queued
+        } else if !libraryStore.librarySongs.isEmpty,
+                  let currentID = nowPlayingID,
+                  let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == currentID }) {
+            nextSong = libraryStore.librarySongs[(idx + 1) % libraryStore.librarySongs.count]
+        } else {
+            nextSong = nil
         }
-        guard !libraryStore.librarySongs.isEmpty,
-              let currentID = nowPlayingID,
-              let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == currentID }) else { return }
-        let next = libraryStore.librarySongs[(idx + 1) % libraryStore.librarySongs.count]
-        nowPlayingID = next.id
-        libraryStore.recordPlay(songID: next.id)
+        guard let song = nextSong else { return }
+        playSong(song)
     }
 
     private func stepBackPlayback() {
@@ -231,13 +224,13 @@ struct RootTabView: View {
               let currentID = nowPlayingID,
               let idx = libraryStore.librarySongs.firstIndex(where: { $0.id == currentID }) else { return }
         let prev = libraryStore.librarySongs[(idx - 1 + libraryStore.librarySongs.count) % libraryStore.librarySongs.count]
-        nowPlayingID = prev.id
-        libraryStore.recordPlay(songID: prev.id)
+        playSong(prev)
     }
 
     private func playSong(_ song: Song) {
+        audioPlayer.load(song: song)
+        audioPlayer.play()
         nowPlayingID = song.id
-        isPlaying = true
         libraryStore.recordPlay(songID: song.id)
     }
 }
@@ -245,4 +238,5 @@ struct RootTabView: View {
 #Preview {
     RootTabView()
         .environmentObject(LibraryStore())
+        .environmentObject(AudioPlayerService())
 }

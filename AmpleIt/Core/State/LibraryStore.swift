@@ -12,10 +12,8 @@ final class LibraryStore: ObservableObject {
     @Published private(set) var playlistArtwork: [UUID: ArtworkAsset] = [:]
 
     init() {
-        self.librarySongs = MockData.songs
-        self.playlists = MockData.playlists
-        self.playlistSongIDs = MockData.seededPlaylistSongIDs(songs: librarySongs, playlists: playlists)
-        syncAllPlaylistCounts()
+        self.librarySongs = []
+        self.playlists = []
     }
 
     func duplicate(song: Song) {

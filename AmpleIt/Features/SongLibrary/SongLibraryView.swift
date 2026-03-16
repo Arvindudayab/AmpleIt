@@ -368,10 +368,24 @@ struct SongLibraryView: View {
     }
 
     private func buildImportedSongDraft(from url: URL) -> Song {
+        let songID = UUID()
+        let ext = url.pathExtension
+        let destURL: URL? = {
+            let fm = FileManager.default
+            guard let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+            let audioDir = docs.appendingPathComponent("AmpleItAudio", isDirectory: true)
+            if !fm.fileExists(atPath: audioDir.path) {
+                try? fm.createDirectory(at: audioDir, withIntermediateDirectories: true)
+            }
+            let dest = audioDir.appendingPathComponent("\(songID.uuidString).\(ext)")
+            try? fm.copyItem(at: url, to: dest)
+            return fm.fileExists(atPath: dest.path) ? dest : nil
+        }()
         return Song(
-            id: UUID(),
+            id: songID,
             title: url.deletingPathExtension().lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines),
-            artist: ""
+            artist: "",
+            fileURL: destURL
         )
     }
 
