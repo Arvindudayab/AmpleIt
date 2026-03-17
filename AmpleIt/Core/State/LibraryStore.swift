@@ -165,6 +165,17 @@ final class LibraryStore: ObservableObject {
         scheduleSave()
     }
 
+    func updateUserPreset(_ updated: SongPreset) {
+        guard let index = userPresets.firstIndex(where: { $0.id == updated.id }) else { return }
+        userPresets[index] = updated
+        scheduleSave()
+    }
+
+    func deleteUserPreset(id: UUID) {
+        userPresets.removeAll { $0.id == id }
+        scheduleSave()
+    }
+
     // MARK: - Computed
 
     var recentlyAddedSongs: [Song] {

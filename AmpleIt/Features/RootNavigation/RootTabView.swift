@@ -66,6 +66,11 @@ struct RootTabView: View {
                         onPlaySong: playSong,
                         isBackButtonActive: $isBackButtonActive
                     )
+                case .presets:
+                    PresetsView(
+                        isSidebarOpen: $isSidebarOpen,
+                        chromeNS: chromeNS
+                    )
                 case .amp:
                     AmpView(
                         isSidebarOpen: $isSidebarOpen,
@@ -203,7 +208,7 @@ struct RootTabView: View {
                         advancePlayback()
                     },
                     onPrev: {
-                        stepBackPlayback()
+                        handlePrev()
                     }
                 )
                 .environmentObject(libraryStore)

@@ -7,11 +7,16 @@ struct SidebarCard: View {
     let chromeNS: Namespace.ID
 
     private var openWidth: CGFloat { min(containerSize.width * 0.58, 320) }
-    private var openHeight: CGFloat { min(containerSize.height * 0.50, 380) }
-
     var body: some View {
         if isOpen {
-            ZStack(alignment: .topLeading) {
+            VStack(alignment: .leading, spacing: 14) {
+                header
+                Divider().opacity(0.7)
+                navItems
+            }
+            .padding(16)
+            .frame(width: openWidth, alignment: .topLeading)
+            .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(
                         LinearGradient(
@@ -27,17 +32,7 @@ struct SidebarCard: View {
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
                             .strokeBorder(.primary.opacity(0.12), lineWidth: 1)
                     )
-
-                VStack(alignment: .leading, spacing: 14) {
-                    header
-                    Divider().opacity(0.7)
-                    navItems
-                    Spacer(minLength: 0)
-//                    footer
-                }
-                .padding(16)
-            }
-            .frame(width: openWidth, height: openHeight, alignment: .topLeading)
+            )
             .shadow(color: .black.opacity(0.12), radius: 18, x: 0, y: 8)
             .mask(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .compositingGroup()
@@ -98,20 +93,13 @@ struct SidebarCard: View {
             SidebarNavRow(icon: "square.grid.2x2.fill", title: "Playlists", tab: .playlists, selectedTab: $selectedTab) {
                 closeAndSwitch(.playlists)
             }
+            SidebarNavRow(icon: "slider.horizontal.3", title: "Presets", tab: .presets, selectedTab: $selectedTab) {
+                closeAndSwitch(.presets)
+            }
             SidebarNavRow(icon: "sparkles", title: "Amp", tab: .amp, selectedTab: $selectedTab) {
                 closeAndSwitch(.amp)
             }
         }
-    }
-
-    private var footer: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "sparkles")
-            Text("Tip: Use the more button on a song for quick actions.")
-        }
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-        .padding(.top, 6)
     }
 
     private func closeAndSwitch(_ tab: AppTab) {

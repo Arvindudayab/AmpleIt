@@ -21,7 +21,7 @@ extension OnboardingPanel {
         .init(
             screenshotImageName: "Onboarding_Songs",
             title: "Your Song Library",
-            description: "Browse and search all your tracks in one place. Use the + button to import audio from your device (MP3, WAV) or convert from YouTube.",
+            description: "Browse and search all your tracks in one place. Use the + button to import audio from your device as an MP3 or WAV file.",
             tip: "Tap 'Select' in the top-right to choose and delete multiple songs at once."
         ),
         .init(
@@ -41,6 +41,12 @@ extension OnboardingPanel {
             title: "Play & Shuffle Playlists",
             description: "Open a playlist to see all its tracks. Hit Play to start in order or Shuffle to randomize — both load the full playlist into your queue.",
             tip: "Tap ··· to rename the playlist, select songs to remove, or replace the cover art."
+        ),
+        .init(
+            screenshotImageName: "Onboarding_Presets",
+            title: "Presets",
+            description: "Create and manage reusable EQ profiles from the Presets tab in the sidebar. Dial in speed, pitch, reverb, bass, mid, and treble — then apply any preset instantly when editing a song.",
+            tip: "Built-in presets like Warm, Bass Boost, and Lo-Fi are always available as a starting point."
         ),
         .init(
             screenshotImageName: "Onboarding_Player",

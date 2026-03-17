@@ -17,6 +17,19 @@ struct AppScreenContainer<Content: View>: View {
     var trailingToolbar: AnyView? = nil
     @ViewBuilder var content: Content
     
+    private var openSidebarGesture: some Gesture {
+        DragGesture(minimumDistance: 20, coordinateSpace: .global)
+            .onEnded { value in
+                guard showsSidebarButton else { return }
+                guard value.startLocation.x < 24 else { return }
+                guard value.translation.width > 60 else { return }
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    isSidebarOpen = true
+                }
+            }
+    }
+
     private var logoLabel: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -49,6 +62,7 @@ struct AppScreenContainer<Content: View>: View {
                 .ignoresSafeArea()
             content
         }
+        .simultaneousGesture(openSidebarGesture)
         .toolbar {
             if showsSidebarButton {
                 ToolbarItem(placement: .topBarLeading) {

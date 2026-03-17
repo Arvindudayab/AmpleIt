@@ -92,6 +92,14 @@ struct SongLibraryView: View {
                                                 }
                                             }
                                         )
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button {
+                                                libraryStore.addToQueue(song: song)
+                                            } label: {
+                                                Image(systemName: "text.line.first.and.arrowtriangle.forward")
+                                            }
+                                            .tint(Color("AppAccent"))
+                                        }
                                     }
                                 }
                                 .listRowSeparator(.hidden)
@@ -151,6 +159,16 @@ struct SongLibraryView: View {
                     .zIndex(50) // ensure it's above list + add button + mini-player
                 }
 
+                if isSelecting {
+                    selectionDeleteBar(
+                        label: "Delete",
+                        count: selectedSongIDs.count,
+                        disabled: selectedSongIDs.isEmpty,
+                        action: { isDeleteConfirmationPresented = true }
+                    )
+                    .zIndex(60)
+                }
+
             }
             .navigationDestination(isPresented: $isYTUploadActive) {
                 YTUploadView(
@@ -158,18 +176,6 @@ struct SongLibraryView: View {
                     chromeNS: chromeNS,
                     isBackButtonActive: $isBackButtonActive
                 )
-            }
-        }
-        .toolbar {
-            if isSelecting {
-                ToolbarItem(placement: .bottomBar) {
-                    Button(role: .destructive) {
-                        isDeleteConfirmationPresented = true
-                    } label: {
-                        Text("Delete (\(selectedSongIDs.count))")
-                    }
-                    .disabled(selectedSongIDs.isEmpty)
-                }
             }
         }
         .confirmationDialog(
@@ -221,6 +227,23 @@ struct SongLibraryView: View {
                     .animation(.easeInOut(duration: 0.2), value: isImporting)
             }
         }
+    }
+
+    private func selectionDeleteBar(label: String, count: Int, disabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text("\(label) (\(count))")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Capsule().fill(.red))
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .padding(.horizontal, AppLayout.horizontalPadding)
+        .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private func selectableSongRow(_ song: Song) -> some View {

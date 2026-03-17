@@ -129,17 +129,25 @@ struct PlaylistsView: View {
                     .padding(.trailing, AppLayout.horizontalPadding)
                     .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
                 }
-            }
-        }
-        .toolbar {
-            if isSelecting {
-                ToolbarItem(placement: .bottomBar) {
-                    Button(role: .destructive) {
+
+                if isSelecting {
+                    Button {
                         isDeleteConfirmationPresented = true
                     } label: {
                         Text("Delete (\(selectedPlaylistIDs.count))")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Capsule().fill(.red))
                     }
+                    .buttonStyle(.plain)
                     .disabled(selectedPlaylistIDs.isEmpty)
+                    .padding(.horizontal, AppLayout.horizontalPadding)
+                    .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(10)
                 }
             }
         }

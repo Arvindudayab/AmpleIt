@@ -40,84 +40,93 @@ struct PlaylistDetailView: View {
             showsTrailingPlaceholder: false
         ) {
             ZStack(alignment: .bottomTrailing) {
-                ScrollView {
-                    VStack(spacing: 18) {
-                        // Cover (tap to reveal Replace prompt)
-                        playlistCoverSection
-                            .padding(.top, 18)
+                List {
+                    // Cover
+                    playlistCoverSection
+                        .listRowInsets(EdgeInsets(top: 18, leading: 0, bottom: 0, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
 
-                        // Title (in-content).
-                        Text(playlist.name)
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundStyle(.primary)
-                            .padding(.top, 4)
+                    // Title
+                    Text(playlist.name)
+                        .font(.system(size: 34, weight: .bold))
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .listRowInsets(EdgeInsets(top: 12, leading: AppLayout.horizontalPadding, bottom: 0, trailing: AppLayout.horizontalPadding))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
 
-                        // Play / Shuffle buttons
-                        HStack(spacing: 14) {
-                            PlaylistActionButton(title: "Play", systemImage: "play.fill") {
-                                playPlaylist()
-                            }
+                    // Play / Shuffle buttons
+                    HStack(spacing: 14) {
+                        PlaylistActionButton(title: "Play", systemImage: "play.fill") { playPlaylist() }
                             .disabled(currentSongs.isEmpty)
-
-                            PlaylistActionButton(title: "Shuffle", systemImage: "shuffle") {
-                                shufflePlaylist()
-                            }
+                        PlaylistActionButton(title: "Shuffle", systemImage: "shuffle") { shufflePlaylist() }
                             .disabled(currentSongs.isEmpty)
-                        }
-                        .padding(.horizontal, AppLayout.horizontalPadding)
-                        .padding(.top, 2)
+                    }
+                    .listRowInsets(EdgeInsets(top: 14, leading: AppLayout.horizontalPadding, bottom: 8, trailing: AppLayout.horizontalPadding))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
 
-                        // Track list
-                        VStack(spacing: 0) {
-                            if currentSongs.isEmpty {
-                                VStack(spacing: 8) {
-                                    Text("No songs yet.")
-                                        .font(.subheadline.weight(.semibold))
-                                    Text("Add songs to start building this playlist.")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 18)
-                            } else {
-                                ForEach(currentSongs) { song in
-                                    PlaylistTrackRow(
-                                        song: song,
-                                        isNowPlaying: song.id == currentPlayingSongID,
-                                        onTap: {
-                                            onPlaySong(song)
-                                        },
-                                        onAddToQueue: {
-                                            libraryStore.addToQueue(song: song)
-                                        },
-                                        onRemoveFromPlaylist: {
-                                            libraryStore.removeSong(songID: song.id, from: playlist.id)
-                                        },
-                                        isSelecting: isSelecting,
-                                        isSelected: selectedTrackIDs.contains(song.id),
-                                        onSelectToggle: {
-                                            toggleTrackSelection(for: song.id)
-                                        }
-                                    )
-                                    Divider().opacity(0.5)
-                                }
-                            }
-                        }
-                        .padding(.top, 10)
-                        .padding(.horizontal, AppLayout.horizontalPadding)
-
-                        // Footer metadata
-                        HStack {
-                            Text("\(currentSongs.count) song\(currentSongs.count == 1 ? "" : "s"), \(estimatedMinutes) minutes")
+                    // Track rows or empty state
+                    if currentSongs.isEmpty {
+                        VStack(spacing: 8) {
+                            Text("No songs yet.")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Add songs to start building this playlist.")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
-                            Spacer()
                         }
-                        .padding(.horizontal, AppLayout.horizontalPadding)
-                        .padding(.top, 6)
-                        .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerScrollInset)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    } else {
+                        ForEach(currentSongs) { song in
+                            PlaylistTrackRow(
+                                song: song,
+                                isNowPlaying: song.id == currentPlayingSongID,
+                                onTap: { onPlaySong(song) },
+                                onAddToQueue: { libraryStore.addToQueue(song: song) },
+                                onRemoveFromPlaylist: { libraryStore.removeSong(songID: song.id, from: playlist.id) },
+                                isSelecting: isSelecting,
+                                isSelected: selectedTrackIDs.contains(song.id),
+                                onSelectToggle: { toggleTrackSelection(for: song.id) }
+                            )
+                            .listRowInsets(EdgeInsets(top: 0, leading: AppLayout.horizontalPadding, bottom: 0, trailing: AppLayout.horizontalPadding))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.visible)
+                            .listRowSeparatorTint(.primary.opacity(0.10))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button {
+                                    libraryStore.removeSong(songID: song.id, from: playlist.id)
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .tint(.red)
+                                Button {
+                                    libraryStore.addToQueue(song: song)
+                                } label: {
+                                    Image(systemName: "text.line.first.and.arrowtriangle.forward")
+                                }
+                                .tint(Color("AppAccent"))
+                            }
+                        }
                     }
+
+                    // Footer
+                    HStack {
+                        Text("\(currentSongs.count) song\(currentSongs.count == 1 ? "" : "s"), \(estimatedMinutes) minutes")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .listRowInsets(EdgeInsets(top: 6, leading: AppLayout.horizontalPadding, bottom: 0, trailing: AppLayout.horizontalPadding))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .safeAreaPadding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerScrollInset)
 
                 if !isSelecting {
                     FloatingAddButton(systemImage: "plus") {
@@ -125,6 +134,26 @@ struct PlaylistDetailView: View {
                     }
                     .padding(.trailing, AppLayout.horizontalPadding)
                     .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
+                }
+
+                if isSelecting {
+                    Button {
+                        isRemoveConfirmationPresented = true
+                    } label: {
+                        Text("Remove (\(selectedTrackIDs.count))")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Capsule().fill(.red))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(selectedTrackIDs.isEmpty)
+                    .padding(.horizontal, AppLayout.horizontalPadding)
+                    .padding(.bottom, AppLayout.miniPlayerHeight + AppLayout.miniPlayerBottomSpacing)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(10)
                 }
             }
 
@@ -197,16 +226,6 @@ struct PlaylistDetailView: View {
                     }
                 }
 
-                if isSelecting {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button(role: .destructive) {
-                            isRemoveConfirmationPresented = true
-                        } label: {
-                            Text("Remove (\(selectedTrackIDs.count))")
-                        }
-                        .disabled(selectedTrackIDs.isEmpty)
-                    }
-                }
             }
             .tint(Color.primary)
             .onAppear {
