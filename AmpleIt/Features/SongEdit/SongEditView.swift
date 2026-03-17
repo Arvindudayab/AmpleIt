@@ -19,6 +19,8 @@ struct SongEditView: View {
     @Binding var isBackButtonActive: Bool
     let onSave: (Song) -> Void
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var libraryStore: LibraryStore
+    @EnvironmentObject private var audioPlayer: AudioPlayerService
 
     // MARK: - Editable Fields (local draft state)
     @State private var title: String
@@ -30,8 +32,9 @@ struct SongEditView: View {
     @State private var isArtworkPickerPresented: Bool = false
 
     // Presets
-    private let presets: [String] = ["Default", "Warm", "Bass Boost", "Lo-Fi", "Vocal Clarity"]
     @State private var selectedPreset: String = "Default"
+    @State private var isSavePresetAlertPresented: Bool = false
+    @State private var newPresetName: String = ""
 
     // Levels
     @State private var speed: Double = 1.0
@@ -39,6 +42,7 @@ struct SongEditView: View {
     @State private var bass: Double = 0.0
     @State private var mid: Double = 0.0
     @State private var treble: Double = 0.0
+    @State private var pitch: Double = 0.0
     @FocusState private var focusedField: Field?
 
     init(song: Song, isBackButtonActive: Binding<Bool>, onSave: @escaping (Song) -> Void) {
@@ -54,6 +58,7 @@ struct SongEditView: View {
         _bass = State(initialValue: song.settings.bass)
         _mid = State(initialValue: song.settings.mid)
         _treble = State(initialValue: song.settings.treble)
+        _pitch = State(initialValue: song.settings.pitch)
     }
 
     var body: some View {
@@ -85,6 +90,13 @@ struct SongEditView: View {
         }
         .simultaneousGesture(backSwipeGesture)
         .simultaneousGesture(keyboardDismissGesture)
+        .alert("Name Preset", isPresented: $isSavePresetAlertPresented) {
+            TextField("e.g. My Preset", text: $newPresetName)
+            Button("Save") { saveCurrentAsPreset() }
+            Button("Cancel", role: .cancel) { newPresetName = "" }
+        } message: {
+            Text("Save the current settings as a reusable preset.")
+        }
         .onAppear {
             isBackButtonActive = true
         }
@@ -107,6 +119,12 @@ struct SongEditView: View {
                 }
             }
         }
+        .onChange(of: speed)  { _, _ in applyLivePreview() }
+        .onChange(of: pitch)  { _, _ in applyLivePreview() }
+        .onChange(of: reverb) { _, _ in applyLivePreview() }
+        .onChange(of: bass)   { _, _ in applyLivePreview() }
+        .onChange(of: mid)    { _, _ in applyLivePreview() }
+        .onChange(of: treble) { _, _ in applyLivePreview() }
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -174,7 +192,8 @@ struct SongEditView: View {
                 reverb: reverb,
                 bass: bass,
                 mid: mid,
-                treble: treble
+                treble: treble,
+                pitch: pitch
             ),
             dateAdded: song.dateAdded,
             fileURL: song.fileURL
@@ -297,11 +316,15 @@ struct SongEditView: View {
     private var presetsRow: some View {
         HStack(spacing: 12) {
             Menu {
-                ForEach(presets, id: \.self) { p in
+                ForEach(libraryStore.allPresets) { preset in
                     Button {
-                        selectedPreset = p
+                        loadPreset(preset)
                     } label: {
-                        Text(p)
+                        if preset.name == selectedPreset {
+                            Label(preset.name, systemImage: "checkmark")
+                        } else {
+                            Text(preset.name)
+                        }
                     }
                 }
             } label: {
@@ -325,19 +348,61 @@ struct SongEditView: View {
                 )
             }
             .buttonStyle(.plain)
-            
+
             Spacer()
 
-            HStack(spacing: 8) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 14, weight: .semibold))
-                Text("Saved with song")
-                    .font(.system(size: 15, weight: .semibold))
+            Button {
+                newPresetName = ""
+                isSavePresetAlertPresented = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Save Preset")
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.primary.opacity(0.06))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                )
             }
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .buttonStyle(.plain)
         }
+    }
+
+    private func loadPreset(_ preset: SongPreset) {
+        selectedPreset = preset.name
+        speed  = preset.speed
+        pitch  = preset.pitch
+        reverb = preset.reverb
+        bass   = preset.bass
+        mid    = preset.mid
+        treble = preset.treble
+    }
+
+    private func saveCurrentAsPreset() {
+        let name = newPresetName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        let preset = SongPreset(
+            id: UUID(),
+            name: name,
+            speed: speed,
+            pitch: pitch,
+            reverb: reverb,
+            bass: bass,
+            mid: mid,
+            treble: treble
+        )
+        libraryStore.addUserPreset(preset)
+        selectedPreset = name
+        newPresetName = ""
     }
 
     private var modifiersSection: some View {
@@ -345,7 +410,11 @@ struct SongEditView: View {
             Text("Levels")
                 .font(.headline.weight(.semibold))
 
-            LevelSlider(title: "Speed", value: $speed, range: 0.25...4.0, format: { String(format: "%.2fx", $0) })
+            LevelSlider(title: "Speed", value: $speed, range: 0.25...4.0, step: 0.05, format: { String(format: "%.2fx", $0) })
+            LevelSlider(title: "Pitch", value: $pitch, range: -12.0...12.0, step: 1.0, format: {
+                let st = Int($0)
+                return st == 0 ? "0 st" : String(format: "%+d st", st)
+            })
             LevelSlider(title: "Reverb", value: $reverb, range: 0.0...1.0, format: { String(format: "%.0f%%", $0 * 100) })
             LevelSlider(title: "Bass", value: $bass, range: -12.0...12.0, format: { String(format: "%+.0f dB", $0) })
             LevelSlider(title: "Mid", value: $mid, range: -12.0...12.0, format: { String(format: "%+.0f dB", $0) })
@@ -367,4 +436,24 @@ struct SongEditView: View {
     private func dismissKeyboard() {
         focusedField = nil
     }
+
+    private func applyLivePreview() {
+        guard audioPlayer.currentSong?.id == song.id else { return }
+        audioPlayer.applySettings(SongSettings(
+            preset: selectedPreset,
+            speed: speed,
+            reverb: reverb,
+            bass: bass,
+            mid: mid,
+            treble: treble,
+            pitch: pitch
+        ))
+    }
 }
+
+//#Preview("Song Edit") {
+//    NavigationStack {
+//        SongEditView(song: MockData.songs.first!, isBackButtonActive: .constant(false)) { _ in }
+//    }
+//}
+

@@ -78,6 +78,15 @@ struct SongCardRow: View {
     }
 }
 
+#Preview("Song Card Row") {
+    VStack(spacing: 8) {
+        SongCardRow(song: MockData.songs[0], isNowPlaying: true)
+        SongCardRow(song: MockData.songs[1])
+    }
+    .padding()
+    .background(Color("AppBackground"))
+}
+
 private struct PressScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

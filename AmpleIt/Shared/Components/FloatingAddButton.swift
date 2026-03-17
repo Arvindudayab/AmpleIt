@@ -30,3 +30,10 @@ struct FloatingAddButton: View {
         .accessibilityLabel("Add")
     }
 }
+
+#Preview("Floating Add Button") {
+    ZStack {
+        Color("AppBackground").ignoresSafeArea()
+        FloatingAddButton {}
+    }
+}

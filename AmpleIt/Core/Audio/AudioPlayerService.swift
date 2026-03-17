@@ -1,5 +1,7 @@
 import AVFoundation
 import Foundation
+import MediaPlayer
+import UIKit
 
 /// Wraps AVAudioEngine to provide song playback with speed, reverb, and EQ.
 /// All published properties are updated on the main thread.
@@ -13,6 +15,10 @@ final class AudioPlayerService: ObservableObject {
 
     /// Called on the main thread when the current track finishes naturally.
     var onPlaybackFinished: (() -> Void)?
+    /// Called on the main thread when the user taps Next in Control Center / lock screen.
+    var onRemoteNext: (() -> Void)?
+    /// Called on the main thread when the user taps Previous in Control Center / lock screen.
+    var onRemotePrev: (() -> Void)?
 
     // MARK: - Engine graph
 
@@ -25,6 +31,7 @@ final class AudioPlayerService: ObservableObject {
     // MARK: - Internal tracking
 
     private var audioFile: AVAudioFile?
+    @Published private(set) var currentSong: Song?
     private var seekOffset: TimeInterval = 0
     private var progressTimer: Timer?
     /// Incremented every time we stop/seek/load. The completion callback checks
@@ -36,6 +43,7 @@ final class AudioPlayerService: ObservableObject {
     init() {
         configureAudioSession()
         setupEngine()
+        setupRemoteCommands()
     }
 
     // MARK: - Public API
@@ -46,6 +54,7 @@ final class AudioPlayerService: ObservableObject {
         guard let url = song.fileURL else { return }
 
         stopPlayback()
+        currentSong = song
 
         do {
             audioFile = try AVAudioFile(forReading: url)
@@ -61,6 +70,7 @@ final class AudioPlayerService: ObservableObject {
 
         applySettings(song.settings)
         scheduleFrom(offset: 0)
+        updateNowPlaying()
     }
 
     func play() {
@@ -69,6 +79,7 @@ final class AudioPlayerService: ObservableObject {
         playerNode.play()
         isPlaying = true
         startTimer()
+        updateNowPlaying()
     }
 
     func pause() {
@@ -76,6 +87,7 @@ final class AudioPlayerService: ObservableObject {
         playerNode.pause()
         isPlaying = false
         stopTimer()
+        updateNowPlaying()
     }
 
     func seek(to time: TimeInterval) {
@@ -94,16 +106,19 @@ final class AudioPlayerService: ObservableObject {
             playerNode.play()
             startTimer()
         }
+        updateNowPlaying()
     }
 
     /// Applies the song's settings to the engine without reloading the file.
     func applySettings(_ settings: SongSettings) {
         timePitch.rate       = Float(settings.speed)
+        // pitch stored as semitones; AVAudioUnitTimePitch.pitch is in cents (100 cents = 1 semitone)
+        timePitch.pitch      = Float(settings.pitch * 100)
         reverbUnit.wetDryMix = Float(settings.reverb * 100)
-        // Bass/mid/treble stored as –1…1, mapped to –12…+12 dB
-        eqUnit.bands[0].gain = Float(settings.bass   * 12)
-        eqUnit.bands[1].gain = Float(settings.mid    * 12)
-        eqUnit.bands[2].gain = Float(settings.treble * 12)
+        // Bass/mid/treble stored directly in dB (–12…+12)
+        eqUnit.bands[0].gain = Float(settings.bass)
+        eqUnit.bands[1].gain = Float(settings.mid)
+        eqUnit.bands[2].gain = Float(settings.treble)
     }
 
     // MARK: - Private – engine setup
@@ -124,6 +139,10 @@ final class AudioPlayerService: ObservableObject {
         eqUnit.bands[1].filterType = .parametric;  eqUnit.bands[1].frequency = 1000;  eqUnit.bands[1].bandwidth = 1; eqUnit.bands[1].gain = 0; eqUnit.bands[1].bypass = false
         eqUnit.bands[2].filterType = .highShelf;   eqUnit.bands[2].frequency = 10000; eqUnit.bands[2].gain = 0; eqUnit.bands[2].bypass = false
 
+        // Max overlap (32) gives the smoothest phase-vocoder time-stretching at slow speeds.
+        // Default is 8; higher values cost more CPU but eliminate most choppiness.
+        timePitch.overlap = 32
+
         reverbUnit.loadFactoryPreset(.mediumRoom)
         reverbUnit.wetDryMix = 0
 
@@ -143,6 +162,73 @@ final class AudioPlayerService: ObservableObject {
         } catch {
             print("[AudioPlayerService] Engine start error: \(error)")
         }
+    }
+
+    // MARK: - Private – remote commands
+
+    private func setupRemoteCommands() {
+        let center = MPRemoteCommandCenter.shared()
+
+        center.playCommand.addTarget { [weak self] _ in
+            self?.play()
+            return .success
+        }
+
+        center.pauseCommand.addTarget { [weak self] _ in
+            self?.pause()
+            return .success
+        }
+
+        center.togglePlayPauseCommand.addTarget { [weak self] _ in
+            guard let self else { return .commandFailed }
+            isPlaying ? pause() : play()
+            return .success
+        }
+
+        center.nextTrackCommand.addTarget { [weak self] _ in
+            DispatchQueue.main.async { self?.onRemoteNext?() }
+            return .success
+        }
+
+        center.previousTrackCommand.addTarget { [weak self] _ in
+            DispatchQueue.main.async { self?.onRemotePrev?() }
+            return .success
+        }
+
+        center.changePlaybackPositionCommand.isEnabled = true
+        center.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let self,
+                  let posEvent = event as? MPChangePlaybackPositionCommandEvent else {
+                return .commandFailed
+            }
+            seek(to: posEvent.positionTime)
+            return .success
+        }
+    }
+
+    // MARK: - Private – now playing info
+
+    private func updateNowPlaying() {
+        guard let song = currentSong else {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            return
+        }
+
+        var info: [String: Any] = [
+            MPMediaItemPropertyTitle: song.title,
+            MPMediaItemPropertyArtist: song.artist.isEmpty ? "Unknown Artist" : song.artist,
+            MPMediaItemPropertyPlaybackDuration: duration,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
+            // Use actual playback rate so the lock screen interpolates progress correctly.
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? Double(timePitch.rate) : 0.0
+        ]
+
+        if let uiImage = song.artwork?.uiImage {
+            let square = squareCropped(uiImage)
+            info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: square.size) { _ in square }
+        }
+
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
     // MARK: - Private – scheduling
@@ -173,6 +259,7 @@ final class AudioPlayerService: ObservableObject {
         isPlaying = false
         currentTime = duration
         stopTimer()
+        updateNowPlaying()
         onPlaybackFinished?()
     }
 
@@ -201,14 +288,28 @@ final class AudioPlayerService: ObservableObject {
         currentTime = min(seekOffset + elapsed, duration)
     }
 
+    /// Returns a center-cropped square version of the image, matching the app's artwork display.
+    private func squareCropped(_ image: UIImage) -> UIImage {
+        let side = min(image.size.width, image.size.height)
+        let origin = CGPoint(x: (image.size.width - side) / 2,
+                             y: (image.size.height - side) / 2)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = image.scale
+        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { _ in
+            image.draw(at: CGPoint(x: -origin.x, y: -origin.y))
+        }
+    }
+
     private func stopPlayback() {
         scheduleGeneration += 1
         playerNode.stop()
         isPlaying = false
         stopTimer()
         audioFile  = nil
+        currentSong = nil
         seekOffset = 0
         currentTime = 0
         duration    = 0
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 }

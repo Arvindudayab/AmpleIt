@@ -110,13 +110,16 @@ struct SongPlayerView: View {
                                     }
                             )
 
-                        let displayTime = isScrubbing
+                        let speed = song.settings.speed
+                        let mediaTime = isScrubbing
                             ? scrubProgress * audioPlayer.duration
                             : audioPlayer.currentTime
+                        let displayTime = mediaTime / speed
+                        let displayDuration = audioPlayer.duration / speed
                         HStack {
                             Text(formatTime(displayTime))
                             Spacer()
-                            Text("-\(formatTime(max(audioPlayer.duration - displayTime, 0)))")
+                            Text("-\(formatTime(max(displayDuration - displayTime, 0)))")
                         }
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -240,4 +243,18 @@ struct SongPlayerView: View {
                 onClose()
             }
     }
+}
+
+#Preview("Song Player") {
+    let store = LibraryStore.preview
+    SongPlayerView(
+        songID: MockData.songs.first!.id,
+        queueSongs: MockData.songs,
+        isPlaying: .constant(true),
+        onClose: {},
+        onNext: {},
+        onPrev: {}
+    )
+    .environmentObject(store)
+    .environmentObject(AudioPlayerService())
 }

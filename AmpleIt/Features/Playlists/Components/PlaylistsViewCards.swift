@@ -65,3 +65,12 @@ struct PlaylistItem: Identifiable {
 
     var id: UUID { playlist.id }
 }
+
+#Preview("Playlist Cards") {
+    HStack(spacing: 16) {
+        PlaylistCard(playlist: MockData.playlists[0], artwork: nil, artworkSide: 150)
+        PlaylistCard(playlist: MockData.playlists[1], artwork: nil, artworkSide: 150)
+    }
+    .padding()
+    .background(Color("AppBackground"))
+}

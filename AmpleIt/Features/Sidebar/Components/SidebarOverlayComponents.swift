@@ -33,7 +33,7 @@ struct SidebarCard: View {
                     Divider().opacity(0.7)
                     navItems
                     Spacer(minLength: 0)
-                    footer
+//                    footer
                 }
                 .padding(16)
             }
@@ -58,11 +58,13 @@ struct SidebarCard: View {
             Image("SoundAlphaV1")
                 .resizable()
                 .scaledToFit()
-                .padding(8)
+                .padding(6)
+                .frame(width: 38, height: 38)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("AmpleIt")
                     .font(.headline)
+                    .lineLimit(1)
                 Text("Navigate")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -160,5 +162,37 @@ struct SidebarNavRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+#Preview("Sidebar Card") {
+    PreviewHarness { (ctx: PreviewHarness<AnyView>.Context) in
+        AnyView(
+            GeometryReader { geo in
+                ZStack {
+                    Color("AppBackground").ignoresSafeArea()
+                    SidebarCard(
+                        isOpen: .constant(true),
+                        selectedTab: ctx.selectedTab,
+                        containerSize: geo.size,
+                        chromeNS: ctx.chromeNS
+                    )
+                }
+            }
+        )
+    }
+}
+
+#Preview("Sidebar Nav Row") {
+    PreviewHarness { (ctx: PreviewHarness<AnyView>.Context) in
+        AnyView(
+            VStack(spacing: 0) {
+                SidebarNavRow(icon: "house.fill", title: "Home", tab: .home, selectedTab: ctx.selectedTab) {}
+                SidebarNavRow(icon: "music.note.list", title: "Songs", tab: .songs, selectedTab: ctx.selectedTab) {}
+                SidebarNavRow(icon: "square.grid.2x2.fill", title: "Playlists", tab: .playlists, selectedTab: ctx.selectedTab) {}
+            }
+            .padding()
+            .background(Color("AppBackground"))
+        )
     }
 }

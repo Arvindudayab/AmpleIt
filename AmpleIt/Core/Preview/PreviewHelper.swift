@@ -26,6 +26,10 @@ struct PreviewHarness<Content: View>: View {
         let chromeNS: Namespace.ID
     }
 
+    init(@ViewBuilder content: @escaping (_ ctx: Context) -> Content) {
+        self.content = content
+    }
+
     var body: some View {
         content(
             Context(

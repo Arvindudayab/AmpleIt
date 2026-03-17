@@ -159,5 +159,30 @@ struct AmpView: View {
     private func dismissKeyboard() {
         isMessageFieldFocused = false
     }
+}
 
+#Preview("Amp – With Song") {
+    PreviewHarness { (ctx: PreviewHarness<AnyView>.Context) in
+        AnyView(NavigationStack {
+            AmpView(
+                isSidebarOpen: ctx.isSidebarOpen,
+                chromeNS: ctx.chromeNS,
+                currentSong: MockData.songs.first,
+                onOpenNowPlaying: {}
+            )
+        })
+    }
+}
+
+#Preview("Amp – No Song") {
+    PreviewHarness { (ctx: PreviewHarness<AnyView>.Context) in
+        AnyView(NavigationStack {
+            AmpView(
+                isSidebarOpen: ctx.isSidebarOpen,
+                chromeNS: ctx.chromeNS,
+                currentSong: nil,
+                onOpenNowPlaying: {}
+            )
+        })
+    }
 }

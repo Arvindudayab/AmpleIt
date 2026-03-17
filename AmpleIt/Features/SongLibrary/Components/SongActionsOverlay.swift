@@ -272,3 +272,11 @@ struct SongActionsOverlay: View {
         .buttonStyle(.plain)
     }
 }
+
+#Preview("Song Actions Overlay") {
+    ZStack {
+        Color("AppBackground").ignoresSafeArea()
+        SongActionsOverlay(song: MockData.songs.first!, isPresented: .constant(true))
+            .environmentObject(LibraryStore.preview)
+    }
+}

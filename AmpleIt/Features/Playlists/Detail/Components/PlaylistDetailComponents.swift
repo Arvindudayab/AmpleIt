@@ -206,3 +206,40 @@ struct AddSongsToPlaylistSheet: View {
         }
     }
 }
+
+#Preview("Playlist Action Button") {
+    VStack(spacing: 12) {
+        PlaylistActionButton(title: "Play", systemImage: "play.fill") {}
+        PlaylistActionButton(title: "Shuffle", systemImage: "shuffle") {}
+    }
+    .padding()
+    .background(Color("AppBackground"))
+}
+
+#Preview("Playlist Track Row") {
+    VStack(spacing: 0) {
+        PlaylistTrackRow(
+            song: MockData.songs[0],
+            isNowPlaying: true,
+            onTap: {},
+            onAddToQueue: {},
+            onRemoveFromPlaylist: {}
+        )
+        PlaylistTrackRow(
+            song: MockData.songs[1],
+            isNowPlaying: false,
+            onTap: {},
+            onAddToQueue: {},
+            onRemoveFromPlaylist: {}
+        )
+    }
+    .background(Color("AppBackground"))
+}
+
+#Preview("Add Songs To Playlist Sheet") {
+    AddSongsToPlaylistSheet(
+        songs: MockData.songs,
+        onAdd: { _ in },
+        onCancel: {}
+    )
+}

@@ -118,3 +118,39 @@ struct MiniPlayerView: View {
         )
     }
 }
+
+#Preview("Mini Player – Active") {
+    ZStack {
+        Color("AppBackground").ignoresSafeArea()
+        VStack {
+            Spacer()
+            MiniPlayerView(
+                song: MockData.songs.first!,
+                isPlaying: .constant(true),
+                onTap: {},
+                onNext: {},
+                onPrev: {}
+            )
+            .padding(.horizontal, 14)
+            .padding(.bottom, 12)
+        }
+    }
+}
+
+#Preview("Mini Player – Idle") {
+    ZStack {
+        Color("AppBackground").ignoresSafeArea()
+        VStack {
+            Spacer()
+            MiniPlayerView(
+                song: nil,
+                isPlaying: .constant(false),
+                onTap: {},
+                onNext: {},
+                onPrev: {}
+            )
+            .padding(.horizontal, 14)
+            .padding(.bottom, 12)
+        }
+    }
+}

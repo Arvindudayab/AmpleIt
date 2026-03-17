@@ -4,6 +4,7 @@ struct ArtworkPlaceholder: View {
     let seed: String
     var symbolSize: CGFloat = 34
 
+
     var body: some View {
         let palette = seededPalette
 
@@ -38,4 +39,19 @@ struct ArtworkPlaceholder: View {
             partial = (partial &* 31) &+ UInt64(scalar.value)
         })
     }
+}
+
+#Preview("Artwork Placeholder") {
+    HStack(spacing: 12) {
+        ArtworkPlaceholder(seed: "preview-a")
+            .frame(width: 80, height: 80)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        ArtworkPlaceholder(seed: "preview-b")
+            .frame(width: 80, height: 80)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        ArtworkPlaceholder(seed: "preview-c")
+            .frame(width: 80, height: 80)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    .padding()
 }

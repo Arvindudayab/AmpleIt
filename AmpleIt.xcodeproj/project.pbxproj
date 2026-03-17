@@ -21,9 +21,22 @@
 		AA00E7012EF3A96D002C4834 /* AmpleItTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AmpleItTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		252671452F68840200CBAEB4 /* Exceptions for "AmpleIt" folder in "AmpleIt" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2506E7092EF3A96D002C4834 /* AmpleIt */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2506E70C2EF3A96D002C4834 /* AmpleIt */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				252671452F68840200CBAEB4 /* Exceptions for "AmpleIt" folder in "AmpleIt" target */,
+			);
 			path = AmpleIt;
 			sourceTree = "<group>";
 		};
@@ -330,6 +343,7 @@
 				DEVELOPMENT_TEAM = UR23RS6227;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AmpleIt/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = AmpleIt;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -360,6 +374,7 @@
 				DEVELOPMENT_TEAM = UR23RS6227;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AmpleIt/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = AmpleIt;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

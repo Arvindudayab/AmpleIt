@@ -1,19 +1,38 @@
 import SwiftUI
 
 final class LibraryStore: ObservableObject {
-    @Published var librarySongs: [Song]
-    @Published var playlists: [Playlist]
+
+    // MARK: - Published state
+
+    @Published var librarySongs: [Song] = []
+    @Published var playlists: [Playlist] = []
     @Published var queue: [Song] = []
     @Published private(set) var recentlyPlayedIDs: [UUID] = []
-
-    // Playlist -> ordered song ids
+    @Published var userPresets: [SongPreset] = []
     @Published private(set) var playlistSongIDs: [UUID: [UUID]] = [:]
-    // Optional per-playlist artwork stored as serializable image data
     @Published private(set) var playlistArtwork: [UUID: ArtworkAsset] = [:]
 
+    var allPresets: [SongPreset] { SongPreset.builtIn + userPresets }
+
+    // MARK: - Persistence
+
+    /// Serial queue so concurrent saves never interleave writes.
+    private let saveQueue = DispatchQueue(label: "com.ampleit.persistence", qos: .utility)
+
+    // MARK: - Init
+
     init() {
-        self.librarySongs = []
-        self.playlists = []
+        loadFromDisk()
+    }
+
+    // MARK: - Library mutations
+
+    func addSongToLibrary(_ song: Song, atBeginning: Bool = true) {
+        if atBeginning { librarySongs.insert(song, at: 0) } else { librarySongs.append(song) }
+        if let artwork = song.artwork {
+            PersistenceStore.saveArtwork(artwork, key: songArtworkKey(song.id))
+        }
+        scheduleSave()
     }
 
     func duplicate(song: Song) {
@@ -25,33 +44,10 @@ final class LibraryStore: ObservableObject {
             settings: song.settings
         )
         librarySongs.append(copy)
-    }
-
-    func importSong(fromFileURL fileURL: URL) {
-        let name = fileURL.deletingPathExtension().lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
-        let components = name.components(separatedBy: " - ")
-
-        let title: String
-        let artist: String
-
-        if components.count >= 2 {
-            artist = components.dropLast().joined(separator: " - ")
-            title = components.last ?? name
-        } else {
-            title = name.isEmpty ? "Imported Track" : name
-            artist = "Unknown Artist"
+        if let artwork = copy.artwork {
+            PersistenceStore.saveArtwork(artwork, key: songArtworkKey(copy.id))
         }
-
-        let importedSong = Song(id: UUID(), title: title, artist: artist)
-        librarySongs.insert(importedSong, at: 0)
-    }
-
-    func addSongToLibrary(_ song: Song, atBeginning: Bool = true) {
-        if atBeginning {
-            librarySongs.insert(song, at: 0)
-        } else {
-            librarySongs.append(song)
-        }
+        scheduleSave()
     }
 
     func delete(songID: UUID) {
@@ -61,69 +57,24 @@ final class LibraryStore: ObservableObject {
             playlistSongIDs[key]?.removeAll { $0 == songID }
         }
         syncAllPlaylistCounts()
-    }
-
-    func addToQueue(song: Song) {
-        queue.append(song)
-    }
-
-    func popQueue() -> Song? {
-        guard !queue.isEmpty else { return nil }
-        return queue.removeFirst()
-    }
-
-    func addSong(_ song: Song, to playlistID: UUID) {
-        guard playlists.contains(where: { $0.id == playlistID }) else { return }
-        var ids = playlistSongIDs[playlistID] ?? []
-        ids.append(song.id)
-        playlistSongIDs[playlistID] = ids
-        syncPlaylistCount(for: playlistID)
-    }
-
-    func removeSong(songID: UUID, from playlistID: UUID) {
-        guard playlists.contains(where: { $0.id == playlistID }) else { return }
-        guard var ids = playlistSongIDs[playlistID] else { return }
-        ids.removeAll { $0 == songID }
-        playlistSongIDs[playlistID] = ids
-        syncPlaylistCount(for: playlistID)
-    }
-
-    @discardableResult
-    func createPlaylist(name: String, artwork: ArtworkAsset? = nil) -> Playlist {
-        let playlist = Playlist(id: UUID(), name: name, count: 0)
-        playlists.append(playlist)
-        playlistSongIDs[playlist.id] = []
-        if let artwork {
-            playlistArtwork[playlist.id] = artwork
-        }
-        return playlist
-    }
-
-    func deletePlaylists(ids: Set<UUID>) {
-        playlists.removeAll { ids.contains($0.id) }
-        for id in ids {
-            playlistSongIDs.removeValue(forKey: id)
-            playlistArtwork.removeValue(forKey: id)
-        }
+        PersistenceStore.deleteArtwork(key: songArtworkKey(songID))
+        scheduleSave()
     }
 
     func updateSong(_ updated: Song) {
         guard let index = librarySongs.firstIndex(where: { $0.id == updated.id }) else { return }
+        let old = librarySongs[index]
         librarySongs[index] = updated
-        for queueIndex in queue.indices where queue[queueIndex].id == updated.id {
-            queue[queueIndex] = updated
+        for i in queue.indices where queue[i].id == updated.id { queue[i] = updated }
+
+        if updated.artwork != old.artwork {
+            if let artwork = updated.artwork {
+                PersistenceStore.saveArtwork(artwork, key: songArtworkKey(updated.id))
+            } else {
+                PersistenceStore.deleteArtwork(key: songArtworkKey(updated.id))
+            }
         }
-    }
-
-    func renamePlaylist(id: UUID, name: String) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let index = playlists.firstIndex(where: { $0.id == id }) else { return }
-        let old = playlists[index]
-        playlists[index] = Playlist(id: old.id, name: trimmed, count: old.count)
-    }
-
-    func replaceQueue(with songs: [Song]) {
-        queue = songs
+        scheduleSave()
     }
 
     func recordPlay(songID: UUID) {
@@ -132,7 +83,89 @@ final class LibraryStore: ObservableObject {
         if recentlyPlayedIDs.count > 5 {
             recentlyPlayedIDs = Array(recentlyPlayedIDs.prefix(5))
         }
+        scheduleSave()
     }
+
+    // MARK: - Queue (ephemeral — not persisted)
+
+    func addToQueue(song: Song) { queue.append(song) }
+
+    func popQueue() -> Song? {
+        guard !queue.isEmpty else { return nil }
+        return queue.removeFirst()
+    }
+
+    func replaceQueue(with songs: [Song]) { queue = songs }
+
+    // MARK: - Playlist mutations
+
+    @discardableResult
+    func createPlaylist(name: String, artwork: ArtworkAsset? = nil) -> Playlist {
+        let playlist = Playlist(id: UUID(), name: name, count: 0)
+        playlists.append(playlist)
+        playlistSongIDs[playlist.id] = []
+        if let artwork {
+            playlistArtwork[playlist.id] = artwork
+            PersistenceStore.saveArtwork(artwork, key: playlistArtworkKey(playlist.id))
+        }
+        scheduleSave()
+        return playlist
+    }
+
+    func deletePlaylists(ids: Set<UUID>) {
+        playlists.removeAll { ids.contains($0.id) }
+        for id in ids {
+            playlistSongIDs.removeValue(forKey: id)
+            playlistArtwork.removeValue(forKey: id)
+            PersistenceStore.deleteArtwork(key: playlistArtworkKey(id))
+        }
+        scheduleSave()
+    }
+
+    func renamePlaylist(id: UUID, name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let index = playlists.firstIndex(where: { $0.id == id }) else { return }
+        let old = playlists[index]
+        playlists[index] = Playlist(id: old.id, name: trimmed, count: old.count)
+        scheduleSave()
+    }
+
+    func addSong(_ song: Song, to playlistID: UUID) {
+        guard playlists.contains(where: { $0.id == playlistID }) else { return }
+        var ids = playlistSongIDs[playlistID] ?? []
+        ids.append(song.id)
+        playlistSongIDs[playlistID] = ids
+        syncPlaylistCount(for: playlistID)
+        scheduleSave()
+    }
+
+    func removeSong(songID: UUID, from playlistID: UUID) {
+        guard playlists.contains(where: { $0.id == playlistID }) else { return }
+        guard var ids = playlistSongIDs[playlistID] else { return }
+        ids.removeAll { $0 == songID }
+        playlistSongIDs[playlistID] = ids
+        syncPlaylistCount(for: playlistID)
+        scheduleSave()
+    }
+
+    func setPlaylistArtwork(_ artwork: ArtworkAsset?, for playlistID: UUID) {
+        guard playlists.contains(where: { $0.id == playlistID }) else { return }
+        if let artwork {
+            playlistArtwork[playlistID] = artwork
+            PersistenceStore.saveArtwork(artwork, key: playlistArtworkKey(playlistID))
+        } else {
+            playlistArtwork.removeValue(forKey: playlistID)
+            PersistenceStore.deleteArtwork(key: playlistArtworkKey(playlistID))
+        }
+        scheduleSave()
+    }
+
+    func addUserPreset(_ preset: SongPreset) {
+        userPresets.append(preset)
+        scheduleSave()
+    }
+
+    // MARK: - Computed
 
     var recentlyAddedSongs: [Song] {
         Array(librarySongs.sorted { $0.dateAdded > $1.dateAdded }.prefix(5))
@@ -143,18 +176,7 @@ final class LibraryStore: ObservableObject {
         return recentlyPlayedIDs.compactMap { map[$0] }
     }
 
-    func setPlaylistArtwork(_ artwork: ArtworkAsset?, for playlistID: UUID) {
-        guard playlists.contains(where: { $0.id == playlistID }) else { return }
-        if let artwork {
-            playlistArtwork[playlistID] = artwork
-        } else {
-            playlistArtwork.removeValue(forKey: playlistID)
-        }
-    }
-
-    func artwork(for playlistID: UUID) -> ArtworkAsset? {
-        playlistArtwork[playlistID]
-    }
+    func artwork(for playlistID: UUID) -> ArtworkAsset? { playlistArtwork[playlistID] }
 
     func songs(in playlistID: UUID) -> [Song] {
         guard let ids = playlistSongIDs[playlistID], !ids.isEmpty else { return [] }
@@ -162,23 +184,90 @@ final class LibraryStore: ObservableObject {
         return ids.compactMap { map[$0] }
     }
 
-    private func syncAllPlaylistCounts() {
-        playlists = playlists.map { playlist in
-            Playlist(
-                id: playlist.id,
-                name: playlist.name,
-                count: playlistSongIDs[playlist.id]?.count ?? 0
-            )
+    // MARK: - Private – playlist count sync
+
+    fileprivate func syncAllPlaylistCounts() {
+        playlists = playlists.map { p in
+            Playlist(id: p.id, name: p.name, count: playlistSongIDs[p.id]?.count ?? 0)
         }
     }
 
     private func syncPlaylistCount(for playlistID: UUID) {
         guard let index = playlists.firstIndex(where: { $0.id == playlistID }) else { return }
-        let playlist = playlists[index]
-        playlists[index] = Playlist(
-            id: playlist.id,
-            name: playlist.name,
-            count: playlistSongIDs[playlistID]?.count ?? 0
+        let p = playlists[index]
+        playlists[index] = Playlist(id: p.id, name: p.name, count: playlistSongIDs[playlistID]?.count ?? 0)
+    }
+
+    // MARK: - Private – persistence
+
+    private func loadFromDisk() {
+        guard let snapshot = PersistenceStore.loadLibrary() else { return }
+
+        librarySongs = snapshot.songs.map { song in
+            guard let artwork = PersistenceStore.loadArtwork(key: songArtworkKey(song.id)) else {
+                return song
+            }
+            return Song(id: song.id, title: song.title, artist: song.artist,
+                        artwork: artwork, settings: song.settings,
+                        dateAdded: song.dateAdded, fileURL: song.fileURL)
+        }
+
+        playlists = snapshot.playlists
+
+        playlistSongIDs = Dictionary(uniqueKeysWithValues:
+            snapshot.playlistSongIDs.compactMap { key, value in
+                guard let uuid = UUID(uuidString: key) else { return nil }
+                return (uuid, value)
+            }
+        )
+
+        for playlist in playlists {
+            if let artwork = PersistenceStore.loadArtwork(key: playlistArtworkKey(playlist.id)) {
+                playlistArtwork[playlist.id] = artwork
+            }
+        }
+
+        userPresets = snapshot.userPresets
+        recentlyPlayedIDs = snapshot.recentlyPlayedIDs
+        syncAllPlaylistCounts()
+    }
+
+    private func makeSnapshot() -> LibrarySnapshot {
+        LibrarySnapshot(
+            songs: librarySongs,
+            playlistSongIDs: Dictionary(uniqueKeysWithValues:
+                playlistSongIDs.map { ($0.key.uuidString, $0.value) }
+            ),
+            playlists: playlists,
+            userPresets: userPresets,
+            recentlyPlayedIDs: recentlyPlayedIDs
         )
     }
+
+    private func scheduleSave() {
+        let snapshot = makeSnapshot()   // captured on main thread (safe)
+        saveQueue.async {
+            PersistenceStore.saveLibrary(snapshot)
+        }
+    }
+
+    // MARK: - Private – artwork keys
+
+    private func songArtworkKey(_ id: UUID) -> String     { "song_\(id.uuidString)" }
+    private func playlistArtworkKey(_ id: UUID) -> String { "playlist_\(id.uuidString)" }
 }
+
+// MARK: - Debug / Preview
+
+#if DEBUG
+extension LibraryStore {
+    static var preview: LibraryStore {
+        let store = LibraryStore()
+        store.librarySongs = MockData.songs
+        store.playlists = MockData.playlists
+        store.playlistSongIDs = MockData.seededPlaylistSongIDs(songs: store.librarySongs, playlists: store.playlists)
+        store.syncAllPlaylistCounts()
+        return store
+    }
+}
+#endif

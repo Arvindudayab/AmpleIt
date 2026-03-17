@@ -25,6 +25,7 @@ struct SongLibraryView: View {
     @State private var isYTUploadActive: Bool = false
     @State private var isDeviceImporterPresented: Bool = false
     @State private var importAlertMessage: String?
+    @State private var isImporting: Bool = false
     @State private var isSelecting = false
     @State private var selectedSongIDs: Set<UUID> = []
     @State private var isDeleteConfirmationPresented = false
@@ -85,9 +86,6 @@ struct SongLibraryView: View {
                                             onTap: {
                                                 onPlaySong(song)
                                             },
-                                            onEdit: { /* later */ },
-                                            onAddToPlaylist: { /* later */ },
-                                            onDelete: { /* later */ },
                                             onMore: {
                                                 withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                                                     actionsSong = song
@@ -205,6 +203,7 @@ struct SongLibraryView: View {
                     libraryStore.updateSong(updatedSong)
                 }
             }
+            .environmentObject(libraryStore)
         }
         .fullScreenCover(item: $importedDraftSong) { song in
             NavigationStack {
@@ -212,6 +211,14 @@ struct SongLibraryView: View {
                     libraryStore.addSongToLibrary(updatedSong)
                     importedDraftSong = nil
                 }
+            }
+            .environmentObject(libraryStore)
+        }
+        .overlay {
+            if isImporting {
+                LoadingView()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.2), value: isImporting)
             }
         }
     }
@@ -356,12 +363,12 @@ struct SongLibraryView: View {
             return
         }
 
+        isImporting = true
         Task {
             let draftSong = buildImportedSongDraft(from: url)
             await MainActor.run {
-                if hasAccess {
-                    url.stopAccessingSecurityScopedResource()
-                }
+                if hasAccess { url.stopAccessingSecurityScopedResource() }
+                isImporting = false
                 importedDraftSong = draftSong
             }
         }

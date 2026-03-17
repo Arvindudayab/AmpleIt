@@ -145,3 +145,13 @@ struct CreatePlaylistFormSheet: View {
         }
     }
 }
+
+#Preview("Create Playlist Form") {
+    CreatePlaylistFormSheet(
+        name: .constant(""),
+        artwork: .constant(nil),
+        showArtworkOverlay: .constant(false),
+        onCreate: {},
+        onCancel: {}
+    )
+}

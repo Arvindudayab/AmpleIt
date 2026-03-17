@@ -117,6 +117,7 @@ struct HomeView: View {
                     libraryStore.updateSong(updatedSong)
                 }
             }
+            .environmentObject(libraryStore)
         }
         .fullScreenCover(isPresented: $isOnboardingPresented) {
             OnboardingView(onClose: { isOnboardingPresented = false })

@@ -88,3 +88,23 @@ struct QueueCardView: View {
         .shadow(color: .black.opacity(0.18), radius: 12, x: 0, y: 8)
     }
 }
+
+#Preview("Queue Card – With Songs") {
+    ZStack {
+        Color("AppBackground").ignoresSafeArea()
+        QueueCardView(
+            queueSongs: Array(MockData.songs.prefix(4)),
+            onClose: {},
+            onClearQueue: {}
+        )
+        .padding()
+    }
+}
+
+#Preview("Queue Card – Empty") {
+    ZStack {
+        Color("AppBackground").ignoresSafeArea()
+        QueueCardView(queueSongs: [], onClose: {}, onClearQueue: {})
+            .padding()
+    }
+}

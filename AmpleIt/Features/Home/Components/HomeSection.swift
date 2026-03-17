@@ -19,3 +19,11 @@ struct HomeSection<Content: View>: View {
         }
     }
 }
+
+#Preview("Home Section") {
+    HomeSection(title: "Recently Added") {
+        Text("Song A")
+        Text("Song B")
+    }
+    .padding()
+}

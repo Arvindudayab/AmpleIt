@@ -9,6 +9,7 @@ import SwiftUI
 struct RootTabView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerService
+    @Environment(\.scenePhase) private var scenePhase
     @State private var isSidebarOpen = false
     @State private var selectedTab: AppTab = .home
 
@@ -144,7 +145,7 @@ struct RootTabView: View {
                                     isPlaying: isPlayingBinding,
                                     onTap: { isSongPlayerPresented = true },
                                     onNext: { advancePlayback() },
-                                    onPrev: { stepBackPlayback() }
+                                    onPrev: { handlePrev() }
                                 )
                                 .matchedGeometryEffect(id: "miniPlayer", in: miniPlayerNS)
                                 .frame(maxWidth: .infinity)
@@ -156,7 +157,7 @@ struct RootTabView: View {
                                 isPlaying: isPlayingBinding,
                                 onTap: { isSongPlayerPresented = true },
                                 onNext: { advancePlayback() },
-                                onPrev: { stepBackPlayback() }
+                                onPrev: { handlePrev() }
                             )
                             .matchedGeometryEffect(id: "miniPlayer", in: miniPlayerNS)
                         }
@@ -167,6 +168,10 @@ struct RootTabView: View {
                 }
                 .animation(.spring(response: 0.35, dampingFraction: 0.9), value: nowPlayingID)
             }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .background else { return }
+            savePlaybackState()
         }
         .onChange(of: libraryStore.librarySongs.map(\.id)) { _, _ in
             guard let currentID = nowPlayingID else { return }
@@ -181,6 +186,9 @@ struct RootTabView: View {
                 guard audioPlayer != nil else { return }
                 self.advancePlayback()
             }
+            audioPlayer.onRemoteNext = { self.advancePlayback() }
+            audioPlayer.onRemotePrev = { self.handlePrev() }
+            restorePlaybackState()
         }
         .fullScreenCover(isPresented: $isSongPlayerPresented) {
             if let songID = nowPlayingID {
@@ -219,6 +227,15 @@ struct RootTabView: View {
         playSong(song)
     }
 
+    private func handlePrev() {
+        // If more than 2 seconds in, restart the current song.
+        if audioPlayer.currentTime > 2 {
+            audioPlayer.seek(to: 0)
+            return
+        }
+        stepBackPlayback()
+    }
+
     private func stepBackPlayback() {
         guard !libraryStore.librarySongs.isEmpty,
               let currentID = nowPlayingID,
@@ -232,6 +249,25 @@ struct RootTabView: View {
         audioPlayer.play()
         nowPlayingID = song.id
         libraryStore.recordPlay(songID: song.id)
+    }
+
+    // MARK: - Playback state persistence
+
+    private func savePlaybackState() {
+        UserDefaults.standard.set(nowPlayingID?.uuidString, forKey: "lastPlayedSongID")
+        UserDefaults.standard.set(audioPlayer.currentTime, forKey: "lastPlayedPosition")
+    }
+
+    /// Restores the last played song into the mini-player (paused) on launch.
+    private func restorePlaybackState() {
+        guard let idString = UserDefaults.standard.string(forKey: "lastPlayedSongID"),
+              let id = UUID(uuidString: idString),
+              let song = libraryStore.librarySongs.first(where: { $0.id == id }) else { return }
+        let position = UserDefaults.standard.double(forKey: "lastPlayedPosition")
+        audioPlayer.load(song: song)
+        if position > 0 { audioPlayer.seek(to: position) }
+        nowPlayingID = song.id
+        // Intentionally not calling play() — user must tap to resume.
     }
 }
 

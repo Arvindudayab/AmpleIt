@@ -10,3 +10,8 @@ struct NowPlayingIndicator: View {
             .symbolEffect(.pulse.byLayer, options: .repeat(.continuous))
     }
 }
+
+#Preview("Now Playing Indicator") {
+    NowPlayingIndicator()
+        .padding()
+}
