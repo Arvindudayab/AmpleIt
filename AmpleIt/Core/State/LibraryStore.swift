@@ -41,7 +41,8 @@ final class LibraryStore: ObservableObject {
             title: "\(song.title) Copy",
             artist: song.artist,
             artwork: song.artwork,
-            settings: song.settings
+            settings: song.settings,
+            fileURL: song.fileURL
         )
         librarySongs.append(copy)
         if let artwork = copy.artwork {

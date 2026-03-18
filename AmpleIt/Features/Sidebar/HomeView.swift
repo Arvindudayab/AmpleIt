@@ -41,7 +41,7 @@ struct HomeView: View {
             Button {
                 libraryStore.addToQueue(song: song)
             } label: {
-                Image(systemName: "text.line.first.and.arrowtriangle.forward")
+                Label("Queue", systemImage: "text.line.first.and.arrowtriangle.forward")
             }
             .tint(Color("AppAccent"))
         }
@@ -55,10 +55,11 @@ struct HomeView: View {
             Spacer()
             Button("See all") { selectedTab = .songs }
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
         }
         .padding(.horizontal, 16)
         .padding(.top, 10)
+        .padding(.bottom, 6)
         .textCase(nil)
         .listRowInsets(EdgeInsets())
     }

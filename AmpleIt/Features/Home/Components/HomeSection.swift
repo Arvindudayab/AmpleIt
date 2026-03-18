@@ -9,6 +9,7 @@ struct HomeSection<Content: View>: View {
             HStack {
                 Text(title)
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
                 Spacer()
                 Button("See all") {}
                     .font(.subheadline.weight(.semibold))

@@ -100,13 +100,13 @@ struct PlaylistDetailView: View {
                                 Button {
                                     libraryStore.removeSong(songID: song.id, from: playlist.id)
                                 } label: {
-                                    Image(systemName: "trash")
+                                    Label("Remove", systemImage: "trash")
                                 }
                                 .tint(.red)
                                 Button {
                                     libraryStore.addToQueue(song: song)
                                 } label: {
-                                    Image(systemName: "text.line.first.and.arrowtriangle.forward")
+                                    Label("Queue", systemImage: "text.line.first.and.arrowtriangle.forward")
                                 }
                                 .tint(Color("AppAccent"))
                             }

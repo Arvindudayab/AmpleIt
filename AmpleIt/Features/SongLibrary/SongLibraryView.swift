@@ -96,7 +96,7 @@ struct SongLibraryView: View {
                                             Button {
                                                 libraryStore.addToQueue(song: song)
                                             } label: {
-                                                Image(systemName: "text.line.first.and.arrowtriangle.forward")
+                                                Label("Queue", systemImage: "text.line.first.and.arrowtriangle.forward")
                                             }
                                             .tint(Color("AppAccent"))
                                         }
