@@ -5,6 +5,8 @@ struct SidebarOverlay: View {
     @Binding var selectedTab: AppTab
     let chromeNS: Namespace.ID
 
+    @State private var isHelpPresented = false
+
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
@@ -25,7 +27,8 @@ struct SidebarOverlay: View {
                     isOpen: $isOpen,
                     selectedTab: $selectedTab,
                     containerSize: geo.size,
-                    chromeNS: chromeNS
+                    chromeNS: chromeNS,
+                    onShowHelp: { isHelpPresented = true }
                 )
                 .padding(.leading, 14)
                 .padding(.top, geo.safeAreaInsets.top + 8)
@@ -33,6 +36,9 @@ struct SidebarOverlay: View {
         }
         .allowsHitTesting(isOpen)
         .animation(.spring(response: 0.42, dampingFraction: 0.88), value: isOpen)
+        .fullScreenCover(isPresented: $isHelpPresented) {
+            OnboardingView(onClose: { isHelpPresented = false })
+        }
     }
 }
 

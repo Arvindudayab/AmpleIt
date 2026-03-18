@@ -20,7 +20,6 @@ struct HomeView: View {
 
     @State private var actionsSong: Song? = nil
     @State private var editingSong: Song? = nil
-    @State private var isOnboardingPresented: Bool = false
 
     @ViewBuilder
     private func songRow(_ song: Song) -> some View {
@@ -51,12 +50,11 @@ struct HomeView: View {
         HStack {
             Text(title)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(.primary)
             Spacer()
             Button("See all") { selectedTab = .songs }
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
         }
+        .foregroundStyle(Color.primary)
         .padding(.horizontal, 16)
         .padding(.top, 10)
         .padding(.bottom, 6)
@@ -71,9 +69,18 @@ struct HomeView: View {
             chromeNS: chromeNS,
             showsTrailingPlaceholder: false,
             trailingToolbar: AnyView(
-                HelpButton {
-                    isOnboardingPresented = true
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+                        selectedTab = .amp
+                    }
+                } label: {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.primary)
+                        .frame(width: 36, height: 36)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open Amp")
             )
         ) {
             ZStack {
@@ -133,9 +140,6 @@ struct HomeView: View {
             }
             .environmentObject(libraryStore)
         }
-        .fullScreenCover(isPresented: $isOnboardingPresented) {
-            OnboardingView(onClose: { isOnboardingPresented = false })
-        }
     }
 
 
@@ -186,17 +190,3 @@ private struct HomeEmptyState: View {
     }
 }
 
-private struct HelpButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "questionmark")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.primary)
-                .frame(width: 36, height: 36)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("How to use AmpleIt")
-    }
-}

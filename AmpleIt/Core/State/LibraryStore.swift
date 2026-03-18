@@ -11,6 +11,7 @@ final class LibraryStore: ObservableObject {
     @Published var userPresets: [SongPreset] = []
     @Published private(set) var playlistSongIDs: [UUID: [UUID]] = [:]
     @Published private(set) var playlistArtwork: [UUID: ArtworkAsset] = [:]
+    @Published private(set) var songAnalysis: [UUID: AudioAnalysis] = [:]
 
     var allPresets: [SongPreset] { SongPreset.builtIn + userPresets }
 
@@ -23,6 +24,7 @@ final class LibraryStore: ObservableObject {
 
     init() {
         loadFromDisk()
+        analyzeUnprocessedSongs()
     }
 
     // MARK: - Library mutations
@@ -33,6 +35,27 @@ final class LibraryStore: ObservableObject {
             PersistenceStore.saveArtwork(artwork, key: songArtworkKey(song.id))
         }
         scheduleSave()
+        Task { [weak self] in
+            guard let self else { return }
+            guard let analysis = await AudioAnalysisService.shared.analyze(song: song) else { return }
+            await MainActor.run { self.storeAnalysis(analysis, for: song.id) }
+        }
+    }
+
+    func storeAnalysis(_ analysis: AudioAnalysis, for songID: UUID) {
+        songAnalysis[songID] = analysis
+        scheduleSave()
+    }
+
+    private func analyzeUnprocessedSongs() {
+        let unprocessed = librarySongs.filter { songAnalysis[$0.id] == nil && $0.fileURL != nil }
+        for song in unprocessed {
+            Task { [weak self] in
+                guard let self else { return }
+                guard let analysis = await AudioAnalysisService.shared.analyze(song: song) else { return }
+                await MainActor.run { self.storeAnalysis(analysis, for: song.id) }
+            }
+        }
     }
 
     func duplicate(song: Song) {
@@ -242,6 +265,12 @@ final class LibraryStore: ObservableObject {
         userPresets = snapshot.userPresets
         recentlyPlayedIDs = snapshot.recentlyPlayedIDs
         syncAllPlaylistCounts()
+        songAnalysis = Dictionary(uniqueKeysWithValues:
+            snapshot.songAnalysis.compactMap { key, value in
+                guard let uuid = UUID(uuidString: key) else { return nil }
+                return (uuid, value)
+            }
+        )
     }
 
     private func makeSnapshot() -> LibrarySnapshot {
@@ -252,7 +281,10 @@ final class LibraryStore: ObservableObject {
             ),
             playlists: playlists,
             userPresets: userPresets,
-            recentlyPlayedIDs: recentlyPlayedIDs
+            recentlyPlayedIDs: recentlyPlayedIDs,
+            songAnalysis: Dictionary(uniqueKeysWithValues:
+                songAnalysis.map { ($0.key.uuidString, $0.value) }
+            )
         )
     }
 

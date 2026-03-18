@@ -3,6 +3,7 @@
 //  AmpleIt
 //
 //  Created by Arvind Udayabanu on 12/18/25.
+//
 
 import SwiftUI
 
@@ -78,7 +79,8 @@ struct RootTabView: View {
                         currentSong: nowPlayingSong,
                         onOpenNowPlaying: {
                             isSongPlayerPresented = true
-                        }
+                        },
+                        onPlaySong: playSong
                     )
                 }
             }
@@ -199,7 +201,6 @@ struct RootTabView: View {
             if let songID = nowPlayingID {
                 SongPlayerView(
                     songID: songID,
-                    queueSongs: libraryStore.queue,
                     isPlaying: isPlayingBinding,
                     onClose: {
                         isSongPlayerPresented = false
