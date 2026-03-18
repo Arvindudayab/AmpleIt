@@ -1,0 +1,15 @@
+# Secrets — never commit real keys
+AmpleIt/App/Secrets.xcconfig
+
+# Xcode
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.orig
+DerivedData/
+*.hmap
+*.ipa
+*.xcarchive
+
+# macOS
+.DS_Store

@@ -79,7 +79,8 @@ struct RootTabView: View {
                         currentSong: nowPlayingSong,
                         onOpenNowPlaying: {
                             isSongPlayerPresented = true
-                        }
+                        },
+                        onPlaySong: playSong
                     )
                 }
             }
@@ -200,7 +201,6 @@ struct RootTabView: View {
             if let songID = nowPlayingID {
                 SongPlayerView(
                     songID: songID,
-                    queueSongs: libraryStore.queue,
                     isPlaying: isPlayingBinding,
                     onClose: {
                         isSongPlayerPresented = false

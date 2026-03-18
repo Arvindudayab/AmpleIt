@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SongPlayerView: View {
     let songID: UUID
-    let queueSongs: [Song]
     @Binding var isPlaying: Bool
     let onClose: () -> Void
     let onNext: () -> Void
@@ -10,6 +9,7 @@ struct SongPlayerView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerService
     @State private var isQueueCardPresented: Bool = false
+    @State private var isJamPresented: Bool = false
     @State private var progressBarWidth: CGFloat = 0
     @State private var isScrubbing: Bool = false
     @State private var scrubProgress: Double = 0
@@ -155,7 +155,41 @@ struct SongPlayerView: View {
                     Spacer(minLength: 0)
 
                     HStack {
+                        // Jam — bottom leading
+                        Button {
+                            isJamPresented = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "waveform")
+                                    .font(.system(size: 17, weight: .semibold))
+                                Text("Jam")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 20)
+                            .frame(height: 46)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.white.opacity(0.30),
+                                                Color.white.opacity(0.06)
+                                            ],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .shadow(color: .black.opacity(0.14), radius: 10, x: 0, y: 5)
+                        }
+                        .buttonStyle(.plain)
+
                         Spacer()
+
+                        // Queue — bottom trailing
                         Button {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
                                 isQueueCardPresented.toggle()
@@ -205,7 +239,7 @@ struct SongPlayerView: View {
                     }
 
                 QueueCardView(
-                    queueSongs: queueSongs,
+                    queueSongs: libraryStore.queue,
                     onClose: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
                             isQueueCardPresented = false
@@ -225,6 +259,13 @@ struct SongPlayerView: View {
             }
         }
         .simultaneousGesture(dismissGesture)
+        .fullScreenCover(isPresented: $isJamPresented) {
+            if let song {
+                JamView(song: song, onClose: { isJamPresented = false })
+                    .environmentObject(libraryStore)
+                    .environmentObject(audioPlayer)
+            }
+        }
     }
 
     private func formatTime(_ seconds: TimeInterval) -> String {
@@ -249,7 +290,6 @@ struct SongPlayerView: View {
     let store = LibraryStore.preview
     SongPlayerView(
         songID: MockData.songs.first!.id,
-        queueSongs: MockData.songs,
         isPlaying: .constant(true),
         onClose: {},
         onNext: {},

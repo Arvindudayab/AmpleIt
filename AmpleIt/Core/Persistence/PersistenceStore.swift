@@ -7,11 +7,33 @@ import Foundation
 /// in Documents/AmpleItArtwork/ so the JSON stays small.
 struct LibrarySnapshot: Codable {
     var songs: [Song]
-    /// Playlist UUID string → ordered song UUIDs.
     var playlistSongIDs: [String: [UUID]]
     var playlists: [Playlist]
     var userPresets: [SongPreset]
     var recentlyPlayedIDs: [UUID]
+    var songAnalysis: [String: AudioAnalysis]
+
+    init(songs: [Song], playlistSongIDs: [String: [UUID]], playlists: [Playlist],
+         userPresets: [SongPreset], recentlyPlayedIDs: [UUID],
+         songAnalysis: [String: AudioAnalysis] = [:]) {
+        self.songs             = songs
+        self.playlistSongIDs   = playlistSongIDs
+        self.playlists         = playlists
+        self.userPresets       = userPresets
+        self.recentlyPlayedIDs = recentlyPlayedIDs
+        self.songAnalysis      = songAnalysis
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        songs             = try c.decode([Song].self,               forKey: .songs)
+        playlistSongIDs   = try c.decode([String: [UUID]].self,     forKey: .playlistSongIDs)
+        playlists         = try c.decode([Playlist].self,            forKey: .playlists)
+        userPresets       = try c.decode([SongPreset].self,          forKey: .userPresets)
+        recentlyPlayedIDs = try c.decode([UUID].self,               forKey: .recentlyPlayedIDs)
+        songAnalysis      = (try? c.decodeIfPresent([String: AudioAnalysis].self,
+                                                    forKey: .songAnalysis)) ?? [:]
+    }
 }
 
 // MARK: - Store

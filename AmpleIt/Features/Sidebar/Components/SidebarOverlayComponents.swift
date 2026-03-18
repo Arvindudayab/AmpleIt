@@ -5,6 +5,7 @@ struct SidebarCard: View {
     @Binding var selectedTab: AppTab
     let containerSize: CGSize
     let chromeNS: Namespace.ID
+    let onShowHelp: () -> Void
 
     private var openWidth: CGFloat { min(containerSize.width * 0.58, 320) }
     var body: some View {
@@ -99,6 +100,34 @@ struct SidebarCard: View {
             SidebarNavRow(icon: "sparkles", title: "Amp", tab: .amp, selectedTab: $selectedTab) {
                 closeAndSwitch(.amp)
             }
+
+            Divider().opacity(0.5).padding(.vertical, 2)
+
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+                    isOpen = false
+                }
+                onShowHelp()
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 38, height: 38)
+                        Image(systemName: "questionmark")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    Text("Help")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -163,7 +192,8 @@ struct SidebarNavRow: View {
                         isOpen: .constant(true),
                         selectedTab: ctx.selectedTab,
                         containerSize: geo.size,
-                        chromeNS: ctx.chromeNS
+                        chromeNS: ctx.chromeNS,
+                        onShowHelp: {}
                     )
                 }
             }
