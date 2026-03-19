@@ -6,6 +6,7 @@ struct SongPlayerView: View {
     let onClose: () -> Void
     let onNext: () -> Void
     let onPrev: () -> Void
+    var onPlayQueueSong: ((Song, Int) -> Void)? = nil
     @EnvironmentObject private var libraryStore: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerService
     @State private var isQueueCardPresented: Bool = false
@@ -55,18 +56,14 @@ struct SongPlayerView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, AppLayout.horizontalPadding)
 
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(song.title)
-                                .font(.system(size: 33, weight: .bold))
-                                .lineLimit(1)
-                            Text(song.artist)
-                                .font(.title3)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        Spacer()
+                    VStack(alignment: .leading, spacing: 6) {
+                        MarqueeText(text: song.title, font: .system(size: 33, weight: .bold), height: 40)
+                        Text(song.artist)
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, AppLayout.horizontalPadding)
 
                     VStack(spacing: 8) {
@@ -250,6 +247,12 @@ struct SongPlayerView: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
                             isQueueCardPresented = false
                         }
+                    },
+                    onTapSong: { song, index in
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                            isQueueCardPresented = false
+                        }
+                        onPlayQueueSong?(song, index)
                     }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -283,6 +286,52 @@ struct SongPlayerView: View {
                 guard isDownwardSwipe, isMostlyVertical else { return }
                 onClose()
             }
+    }
+}
+
+// MARK: - Marquee Text
+
+private struct MarqueeText: View {
+    let text: String
+    let font: Font
+    let height: CGFloat
+
+    @State private var textWidth: CGFloat = 0
+    @State private var animate: Bool = false
+
+    var body: some View {
+        GeometryReader { geo in
+            let overflow = max(0, textWidth - geo.size.width)
+            let scrolling = overflow > 1
+
+            Text(text)
+                .font(font)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .id(text)
+                .background(GeometryReader { inner in
+                    Color.clear.onAppear { textWidth = inner.size.width }
+                })
+                .offset(x: (scrolling && animate) ? -overflow : 0)
+                .animation(
+                    scrolling
+                        ? .linear(duration: max(3.0, Double(overflow) / 30))
+                            .repeatForever(autoreverses: true)
+                            .delay(1.5)
+                        : nil,
+                    value: animate
+                )
+                .clipped()
+        }
+        .frame(height: height)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { animate = true }
+        }
+        .onChange(of: text) { _, _ in
+            animate = false
+            textWidth = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { animate = true }
+        }
     }
 }
 

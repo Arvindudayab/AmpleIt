@@ -98,18 +98,18 @@ struct PersistenceStore {
 
     // MARK: - Helpers
 
-    private static var encoder: JSONEncoder {
+    private static let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.dateEncodingStrategy = .iso8601
         e.outputFormatting = [.prettyPrinted, .sortedKeys]
         return e
-    }
+    }()
 
-    private static var decoder: JSONDecoder {
+    private static let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.dateDecodingStrategy = .iso8601
         return d
-    }
+    }()
 
     private static func ensureArtworkDir() {
         let fm = FileManager.default

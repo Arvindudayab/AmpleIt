@@ -334,6 +334,8 @@
 		};
 		2506E7192EF3A970002C4834 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 2506E70C2EF3A96D002C4834 /* AmpleIt */;
+			baseConfigurationReferenceRelativePath = App/Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AmpleItIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -365,6 +367,8 @@
 		};
 		2506E71A2EF3A970002C4834 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 2506E70C2EF3A96D002C4834 /* AmpleIt */;
+			baseConfigurationReferenceRelativePath = App/Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AmpleItIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

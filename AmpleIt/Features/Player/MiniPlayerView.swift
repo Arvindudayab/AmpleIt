@@ -119,6 +119,7 @@ struct MiniPlayerView: View {
     }
 }
 
+
 #Preview("Mini Player – Active") {
     ZStack {
         Color("AppBackground").ignoresSafeArea()

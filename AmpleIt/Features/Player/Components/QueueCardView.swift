@@ -4,6 +4,7 @@ struct QueueCardView: View {
     let queueSongs: [Song]
     let onClose: () -> Void
     let onClearQueue: () -> Void
+    var onTapSong: ((Song, Int) -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,26 +42,32 @@ struct QueueCardView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(queueSongs) { song in
-                            HStack(spacing: 10) {
-                                SongArtworkView(song: song)
-                                    .frame(width: 28, height: 28)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        ForEach(Array(queueSongs.enumerated()), id: \.element.id) { index, song in
+                            Button {
+                                onTapSong?(song, index)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    SongArtworkView(song: song, placeholderSymbolSize: 12)
+                                        .frame(width: 28, height: 28)
+                                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(song.title)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .lineLimit(1)
-                                    Text(song.artist)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(song.title)
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .lineLimit(1)
+                                        Text(song.artist)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
                                 }
-                                Spacer()
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .contentShape(Rectangle())
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            if song.id != queueSongs.last?.id {
+                            .buttonStyle(.plain)
+                            if index < queueSongs.count - 1 {
                                 Divider().opacity(0.5)
                             }
                         }

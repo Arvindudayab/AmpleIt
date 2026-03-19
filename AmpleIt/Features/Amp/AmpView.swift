@@ -171,8 +171,9 @@ struct AmpView: View {
     // MARK: - Input bar
 
     private var inputBar: some View {
-        HStack(spacing: 10) {
-            TextField("Message Amp…", text: $draftMessage)
+        HStack(alignment: .bottom, spacing: 10) {
+            TextField("Message Amp…", text: $draftMessage, axis: .vertical)
+                .lineLimit(1...5)
                 .focused($isFieldFocused)
                 .textInputAutocapitalization(.sentences)
                 .autocorrectionDisabled(false)
@@ -214,7 +215,7 @@ struct AmpView: View {
         guard !text.isEmpty, !agent.isThinking else { return }
         draftMessage = ""
         isFieldFocused = false
-        Task { await agent.send(text: text, store: libraryStore, onPlaySong: onPlaySong) }
+        Task { await agent.send(text: text, store: libraryStore, currentNowPlayingID: currentSong?.id, onPlaySong: onPlaySong) }
     }
 
     private var canSend: Bool {
