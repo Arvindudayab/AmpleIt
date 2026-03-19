@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SongArtworkView: View {
     let song: Song
+    var placeholderSymbolSize: CGFloat = 34
 
     var body: some View {
         ZStack {
@@ -10,7 +11,7 @@ struct SongArtworkView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } else {
-                ArtworkPlaceholder(seed: song.id.uuidString)
+                ArtworkPlaceholder(seed: song.id.uuidString, symbolSize: placeholderSymbolSize)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

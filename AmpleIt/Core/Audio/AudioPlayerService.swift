@@ -33,6 +33,8 @@ final class AudioPlayerService: ObservableObject {
 
     private var audioFile: AVAudioFile?
     @Published private(set) var currentSong: Song?
+    /// Pre-rendered artwork for the Now Playing center — real artwork or generated placeholder.
+    private var nowPlayingArtwork: UIImage? = nil
     private var seekOffset: TimeInterval = 0
     private var progressTimer: Timer?
     /// Incremented every time we stop/seek/load. The completion callback checks
@@ -107,6 +109,13 @@ final class AudioPlayerService: ObservableObject {
         duration  = Double(file.length) / file.processingFormat.sampleRate
         seekOffset = 0
         currentTime = 0
+
+        // Pre-render artwork once so updateNowPlaying() can use it without recomputing.
+        if let uiImage = song.artwork?.uiImage {
+            nowPlayingArtwork = squareCropped(uiImage)
+        } else {
+            nowPlayingArtwork = ArtworkPlaceholder.makeUIImage(seed: song.id.uuidString)
+        }
 
         applySettings(song.settings)
         scheduleFrom(offset: 0)
@@ -334,9 +343,8 @@ final class AudioPlayerService: ObservableObject {
             MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? Double(timePitch.rate) : 0.0
         ]
 
-        if let uiImage = song.artwork?.uiImage {
-            let square = squareCropped(uiImage)
-            info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: square.size) { _ in square }
+        if let artwork = nowPlayingArtwork {
+            info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: artwork.size) { _ in artwork }
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
@@ -424,6 +432,7 @@ final class AudioPlayerService: ObservableObject {
         playbackSampleOffset = 0
         audioFile  = nil
         currentSong = nil
+        nowPlayingArtwork = nil
         seekOffset = 0
         currentTime = 0
         duration    = 0

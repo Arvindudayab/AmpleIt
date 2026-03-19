@@ -96,21 +96,20 @@ struct OnboardingView: View {
             .indexViewStyle(.page(backgroundDisplayMode: .always))
             .padding(.top, 48)
 
-            // Dismiss handle: capsule pill + chevron
-            VStack(spacing: 6) {
-                Capsule()
-                    .fill(Color.primary.opacity(0.50))
-                    .frame(width: 144, height: 5)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.primary.opacity(0.30))
+            // Close button — top trailing
+            HStack {
+                Spacer()
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.primary.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, AppLayout.horizontalPadding)
             }
             .padding(.top, 10)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-            .onTapGesture { onClose() }
-            .accessibilityLabel("Close")
-            .accessibilityAddTraits(.isButton)
 
             // Zoomed image overlay
             if let imageName = fullscreenImageName, let uiImage = UIImage(named: imageName) {

@@ -188,6 +188,10 @@ struct RootTabView: View {
                 isSongPlayerPresented = false
             }
         }
+        .onChange(of: nowPlayingSong?.settings) { _, newSettings in
+            guard let settings = newSettings else { return }
+            audioPlayer.applySettings(settings)
+        }
         .onAppear {
             audioPlayer.onPlaybackFinished = { [weak audioPlayer] in
                 guard audioPlayer != nil else { return }
@@ -210,6 +214,12 @@ struct RootTabView: View {
                     },
                     onPrev: {
                         handlePrev()
+                    },
+                    onPlayQueueSong: { song, index in
+                        // Drop all songs before the tapped one, then play it.
+                        let remaining = Array(libraryStore.queue.dropFirst(index + 1))
+                        libraryStore.replaceQueue(with: remaining)
+                        playSong(song)
                     }
                 )
                 .environmentObject(libraryStore)

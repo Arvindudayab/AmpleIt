@@ -16,13 +16,17 @@ final class AmpAgent: ObservableObject {
 
     private var history: [[String: Any]] = []
     private let client = AnthropicClient()
+    /// Tracks the currently playing song ID for the duration of a send() call.
+    /// Updated immediately when build_queue fires so subsequent turns see the new song.
+    private var trackedNowPlayingID: UUID? = nil
 
     // MARK: - Public
 
-    func send(text: String, store: LibraryStore, onPlaySong: ((Song) -> Void)?) async {
+    func send(text: String, store: LibraryStore, currentNowPlayingID: UUID?, onPlaySong: ((Song) -> Void)?) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isThinking else { return }
 
+        trackedNowPlayingID = currentNowPlayingID
         messages.append(Message(role: .user, text: trimmed))
 
         if case .block(let reply) = Self.classify(trimmed) {
@@ -34,9 +38,7 @@ final class AmpAgent: ObservableObject {
         isThinking = true
         defer { isThinking = false }
 
-        let context = ContextBuilder.build(store: store)
-        let system  = Self.systemPrompt(context: context)
-        await runTurn(system: system, store: store, onPlaySong: onPlaySong, messageIdx: nil)
+        await runTurn(store: store, onPlaySong: onPlaySong, messageIdx: nil)
     }
 
     // MARK: - Layer 1: client-side intent classifier
@@ -115,11 +117,14 @@ final class AmpAgent: ObservableObject {
     // MARK: - Private turn loop
 
     private func runTurn(
-        system: String,
         store: LibraryStore,
         onPlaySong: ((Song) -> Void)?,
         messageIdx: Int?
     ) async {
+        // Rebuild context fresh each turn — reflects queue/settings changes from prior tool calls.
+        let context = ContextBuilder.build(store: store, currentNowPlayingID: trackedNowPlayingID)
+        let system  = Self.systemPrompt(context: context)
+
         let idx: Int
         if let existing = messageIdx {
             idx = existing
@@ -175,8 +180,15 @@ final class AmpAgent: ObservableObject {
             ]]
             history.append(["role": "assistant", "content": assistantContent])
 
+            // Wrap onPlaySong to update trackedNowPlayingID immediately when build_queue fires,
+            // so the next runTurn sees the correct NOW PLAYING in its rebuilt context.
+            let wrappedOnPlaySong: (Song) -> Void = { [weak self] song in
+                self?.trackedNowPlayingID = song.id
+                onPlaySong?(song)
+            }
+
             // Execute tool on main actor
-            let executor = ActionExecutor(store: store, onPlaySong: onPlaySong)
+            let executor = ActionExecutor(store: store, currentNowPlayingID: trackedNowPlayingID, onPlaySong: wrappedOnPlaySong)
             let result   = executor.execute(toolName: toolName, input: toolInput)
 
             // Return tool result
@@ -188,7 +200,7 @@ final class AmpAgent: ObservableObject {
             history.append(["role": "user", "content": toolResultContent])
 
             // Continue to get the natural-language reply, reusing the same bubble
-            await runTurn(system: system, store: store, onPlaySong: onPlaySong, messageIdx: idx)
+            await runTurn(store: store, onPlaySong: onPlaySong, messageIdx: idx)
         } else if !textAccum.isEmpty {
             history.append(["role": "assistant", "content": textAccum])
         }
@@ -199,7 +211,7 @@ final class AmpAgent: ObservableObject {
     private func toolDefinitions() -> [[String: Any]] {[
         [
             "name": "build_queue",
-            "description": "Replaces the playback queue and starts playing the first song. Call this when the user asks to play or queue songs.",
+            "description": "Replaces the playback queue and starts playing the first song. Use ONLY when the user explicitly wants to start playing something new (e.g. 'play some jazz', 'queue up my workout songs'). Do NOT use this when the user wants to add songs to the existing queue without interrupting playback — use add_to_queue instead.",
             "input_schema": [
                 "type": "object",
                 "properties": [
@@ -207,6 +219,22 @@ final class AmpAgent: ObservableObject {
                         "type": "array",
                         "items": ["type": "string"],
                         "description": "Full UUIDs of songs from the library in desired play order."
+                    ],
+                    "reasoning": ["type": "string", "description": "Brief explanation of selection."]
+                ],
+                "required": ["song_ids", "reasoning"]
+            ]
+        ],
+        [
+            "name": "add_to_queue",
+            "description": "Appends songs to the end of the current playback queue without interrupting the song that is currently playing. Use this when the user says things like 'add X to my queue', 'put X on next', or 'queue up X after this'.",
+            "input_schema": [
+                "type": "object",
+                "properties": [
+                    "song_ids": [
+                        "type": "array",
+                        "items": ["type": "string"],
+                        "description": "Full UUIDs of songs to append to the queue, in order."
                     ],
                     "reasoning": ["type": "string", "description": "Brief explanation of selection."]
                 ],
@@ -258,7 +286,8 @@ final class AmpAgent: ObservableObject {
         - Answering questions about the user's library, audio concepts, or music theory
 
         ACTIONS:
-        - User wants to play or queue music → call build_queue
+        - User wants to start playing something new → call build_queue
+        - User wants to add songs to the queue without interrupting what's playing → call add_to_queue
         - User wants to change how a song sounds → call edit_song_settings
         - User wants to save a set of songs → call create_playlist
         - Question or advice with no action needed → respond in plain text
@@ -288,7 +317,7 @@ final class AmpAgent: ObservableObject {
           inference, tell the user that analysis is still in progress and ask them to
           try again shortly, or ask them to describe which specific songs feel right.
 
-        \(context.isEmpty ? "" : "Current library:\n\(context)")
+        \(context.isEmpty ? "" : "Current app state:\n\(context)")
         """
     }
 }

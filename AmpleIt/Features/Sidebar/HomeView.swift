@@ -20,6 +20,7 @@ struct HomeView: View {
 
     @State private var actionsSong: Song? = nil
     @State private var editingSong: Song? = nil
+    @State private var isHelpPresented: Bool = false
 
     @ViewBuilder
     private func songRow(_ song: Song) -> some View {
@@ -85,7 +86,7 @@ struct HomeView: View {
         ) {
             ZStack {
                 if libraryStore.recentlyAddedSongs.isEmpty {
-                    HomeEmptyState()
+                    HomeEmptyState(onHelp: { isHelpPresented = true })
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
 
@@ -140,6 +141,9 @@ struct HomeView: View {
             }
             .environmentObject(libraryStore)
         }
+        .fullScreenCover(isPresented: $isHelpPresented) {
+            OnboardingView(onClose: { isHelpPresented = false })
+        }
     }
 
 
@@ -172,6 +176,8 @@ private struct HomePreviewWrapper: View {
 // MARK: - Empty State
 
 private struct HomeEmptyState: View {
+    let onHelp: () -> Void
+
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: "music.note.house")
@@ -185,6 +191,31 @@ private struct HomeEmptyState: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+
+            Button(action: onHelp) {
+                HStack(spacing: 8) {
+                    Image(systemName: "questionmark")
+                        .font(.system(size: 13, weight: .bold))
+                }
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(
+                    Circle()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color.primary.opacity(0.18), Color.primary.opacity(0.06)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: .black.opacity(0.10), radius: 12, x: 0, y: 4)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 6)
         }
         .padding(.horizontal, 40)
     }

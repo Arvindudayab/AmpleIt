@@ -10,6 +10,8 @@ struct JamView: View {
     @State private var pulseScale: CGFloat = 0.94
     @State private var ripples: [UUID] = []
     @State private var dragOffset: CGFloat = 0
+    @State private var blobPhase: Bool = false
+    @State private var beatGlowOpacity: Double = 0
 
     private let coreSize: CGFloat = 136
     private let rippleDuration: Double = 1.9
@@ -28,18 +30,9 @@ struct JamView: View {
             let maxRippleScale = rippleScale(for: geometry.size)
 
             ZStack {
-                LinearGradient(
-                    colors: [
-                        Color("AppBackground"),
-                        Color("AppAccent").opacity(0.18),
-                        Color("AppBackground")
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                backgroundLayer
 
-                // Center cluster + song info
+                // Center cluster + song info — pinned to exact screen center
                 VStack(spacing: 28) {
                     ZStack {
                         ForEach(ripples, id: \.self) { rippleID in
@@ -76,7 +69,8 @@ struct JamView: View {
                         Text(song.title)
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(.primary)
-                            .lineLimit(1)
+                            .lineLimit(3)
+                            .multilineTextAlignment(.center)
                         Text(song.artist)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -86,8 +80,9 @@ struct JamView: View {
                             .foregroundStyle(Color.primary)
                             .padding(.top, 2)
                     }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
 
                 // Dismiss button — top leading
                 VStack {
@@ -114,6 +109,7 @@ struct JamView: View {
             guard audioPlayer.isPlaying else { return }
             fireBeat()
         }
+        .onAppear { blobPhase = true }
     }
 
     // MARK: - Private
@@ -141,6 +137,59 @@ struct JamView: View {
                 pulseScale = 0.94
             }
         }
+
+        withAnimation(.easeOut(duration: 0.10)) { beatGlowOpacity = 0.12 }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.10))
+            withAnimation(.easeOut(duration: 0.60)) { beatGlowOpacity = 0 }
+        }
+    }
+
+    private var backgroundLayer: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color("AppBackground"),
+                    Color("AppAccent").opacity(0.18),
+                    Color("AppBackground")
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            // Blob 1 — top trailing, large drift
+            Circle()
+                .fill(Color("AppAccent").opacity(0.13))
+                .frame(width: 320, height: 320)
+                .blur(radius: 55)
+                .offset(x: blobPhase ? 110 : 55, y: blobPhase ? -200 : -130)
+                .animation(.easeInOut(duration: 9).repeatForever(autoreverses: true), value: blobPhase)
+
+            // Blob 2 — bottom leading, medium drift
+            Circle()
+                .fill(Color("AppAccent").opacity(0.09))
+                .frame(width: 280, height: 280)
+                .blur(radius: 50)
+                .offset(x: blobPhase ? -115 : -55, y: blobPhase ? 190 : 120)
+                .animation(.easeInOut(duration: 11).repeatForever(autoreverses: true).delay(2.5), value: blobPhase)
+
+            // Blob 3 — center, slow breath
+            Circle()
+                .fill(Color.primary.opacity(0.035))
+                .frame(width: 240, height: 240)
+                .blur(radius: 45)
+                .offset(x: blobPhase ? 30 : -30, y: blobPhase ? 50 : -50)
+                .animation(.easeInOut(duration: 14).repeatForever(autoreverses: true).delay(5), value: blobPhase)
+
+            // Beat glow — radial flash on drum onset
+            Circle()
+                .fill(Color("AppAccent").opacity(beatGlowOpacity))
+                .frame(width: 520, height: 520)
+                .blur(radius: 80)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 
     private var dismissDragGesture: some Gesture {
