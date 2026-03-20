@@ -1,5 +1,6 @@
 import XCTest
 import SwiftUI
+import UIKit
 @testable import AmpleIt
 
 final class LibraryStoreTests: XCTestCase {
@@ -7,7 +8,11 @@ final class LibraryStoreTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        store = LibraryStore()
+        // Use the preview factory so that `librarySongs` and `playlists` are
+        // deterministically seeded from MockData regardless of on-disk state.
+        // LibraryStore() alone now calls loadFromDisk() which returns nothing
+        // on a fresh device or CI run, making count assertions non-deterministic.
+        store = LibraryStore.preview
     }
 
     override func tearDown() {
@@ -31,10 +36,12 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertTrue(store.queue.isEmpty)
     }
 
-    func test_init_playlistSongIDsInitializedEmpty() {
+    func test_init_playlistSongIDsInitializedForAllPlaylists() {
+        // The preview store seeds playlistSongIDs from MockData, so every playlist
+        // must have an entry (non-nil), though they may be non-empty.
         for playlist in store.playlists {
-            XCTAssertNotNil(store.playlistSongIDs[playlist.id])
-            XCTAssertTrue(store.playlistSongIDs[playlist.id]!.isEmpty)
+            XCTAssertNotNil(store.playlistSongIDs[playlist.id],
+                            "Missing playlistSongIDs entry for playlist \(playlist.name)")
         }
     }
 
@@ -256,8 +263,15 @@ final class LibraryStoreTests: XCTestCase {
     }
 
     func test_createPlaylist_storesArtworkWhenProvided() {
-        let artwork = Image(systemName: "music.note")
-        let playlist = store.createPlaylist(name: "Art Mix", artwork: artwork)
+        // createPlaylist(artwork:) accepts ArtworkAsset?, not SwiftUI.Image.
+        // Build a minimal 1x1 white JPEG to satisfy ArtworkAsset(data:).
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1))
+        let pngData  = renderer.jpegData(withCompressionQuality: 1.0)
+        guard let asset = ArtworkAsset(data: pngData) else {
+            XCTFail("Could not create ArtworkAsset from synthetic JPEG")
+            return
+        }
+        let playlist = store.createPlaylist(name: "Art Mix", artwork: asset)
         XCTAssertNotNil(store.playlistArtwork[playlist.id])
     }
 
@@ -298,8 +312,13 @@ final class LibraryStoreTests: XCTestCase {
     }
 
     func test_deletePlaylists_removesArtworkForDeletedPlaylist() {
-        let artwork = Image(systemName: "music.note")
-        let playlist = store.createPlaylist(name: "P", artwork: artwork)
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1))
+        let jpegData = renderer.jpegData(withCompressionQuality: 1.0)
+        guard let asset = ArtworkAsset(data: jpegData) else {
+            XCTFail("Could not create ArtworkAsset from synthetic JPEG")
+            return
+        }
+        let playlist = store.createPlaylist(name: "P", artwork: asset)
         store.deletePlaylists(ids: [playlist.id])
         XCTAssertNil(store.playlistArtwork[playlist.id])
     }
@@ -360,5 +379,173 @@ final class LibraryStoreTests: XCTestCase {
         let result = store.songs(in: playlist.id)
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result[0].id, song2.id)
+    }
+
+    // MARK: - recordPlay / recentlyPlayedSongs
+
+    func test_recordPlay_addsToRecentlyPlayedIDs() {
+        let song = store.librarySongs[0]
+        store.recordPlay(songID: song.id)
+        XCTAssertTrue(store.recentlyPlayedIDs.contains(song.id))
+    }
+
+    func test_recordPlay_movesExistingEntryToFront() {
+        let song0 = store.librarySongs[0]
+        let song1 = store.librarySongs[1]
+        store.recordPlay(songID: song0.id)
+        store.recordPlay(songID: song1.id)
+        store.recordPlay(songID: song0.id) // re-play song0 → should be first
+        XCTAssertEqual(store.recentlyPlayedIDs.first, song0.id)
+    }
+
+    func test_recordPlay_capsAtFiveEntries() {
+        for song in store.librarySongs {
+            store.recordPlay(songID: song.id)
+        }
+        XCTAssertLessThanOrEqual(store.recentlyPlayedIDs.count, 5)
+    }
+
+    func test_recentlyPlayedSongs_excludesDeletedSong() {
+        let song = store.librarySongs[0]
+        store.recordPlay(songID: song.id)
+        store.delete(songID: song.id)
+        let played = store.recentlyPlayedSongs
+        XCTAssertFalse(played.contains(where: { $0.id == song.id }))
+    }
+
+    // MARK: - recentlyAddedSongs
+
+    func test_recentlyAddedSongs_returnsAtMostFive() {
+        XCTAssertLessThanOrEqual(store.recentlyAddedSongs.count, 5)
+    }
+
+    func test_recentlyAddedSongs_sortedByDateDescending() {
+        let songs = store.recentlyAddedSongs
+        for i in 0..<(songs.count - 1) {
+            XCTAssertGreaterThanOrEqual(songs[i].dateAdded, songs[i + 1].dateAdded,
+                                        "recentlyAddedSongs is not sorted newest-first at index \(i)")
+        }
+    }
+
+    // MARK: - syncPlaylistCount correctness
+
+    func test_syncPlaylistCount_afterAddSong_countMatchesPlaylistSongIDs() {
+        let playlist = store.createPlaylist(name: "Sync Test")
+        store.addSong(store.librarySongs[0], to: playlist.id)
+        store.addSong(store.librarySongs[1], to: playlist.id)
+        let updated = store.playlists.first(where: { $0.id == playlist.id })!
+        let actualCount = store.playlistSongIDs[playlist.id]?.count ?? 0
+        XCTAssertEqual(updated.count, actualCount,
+                       "Playlist.count \(updated.count) does not match playlistSongIDs count \(actualCount)")
+    }
+
+    func test_syncAllPlaylistCounts_afterDelete_allCountsConsistent() {
+        let song = store.librarySongs[0]
+        for playlist in store.playlists {
+            store.addSong(song, to: playlist.id)
+        }
+        store.delete(songID: song.id)
+        for playlist in store.playlists {
+            let updatedPlaylist = store.playlists.first(where: { $0.id == playlist.id })!
+            let actualCount = store.playlistSongIDs[playlist.id]?.count ?? 0
+            XCTAssertEqual(updatedPlaylist.count, actualCount,
+                           "Count mismatch after delete for playlist \(updatedPlaylist.name)")
+        }
+    }
+
+    // MARK: - updateSong
+
+    func test_updateSong_updatesLibraryEntry() {
+        let original = store.librarySongs[0]
+        let updated = Song(id: original.id, title: "Updated Title", artist: original.artist,
+                           artwork: nil, settings: original.settings,
+                           dateAdded: original.dateAdded, fileURL: nil)
+        store.updateSong(updated)
+        let found = store.librarySongs.first(where: { $0.id == original.id })
+        XCTAssertEqual(found?.title, "Updated Title")
+    }
+
+    func test_updateSong_updatesQueueEntry() {
+        let original = store.librarySongs[0]
+        store.addToQueue(song: original)
+        let updated = Song(id: original.id, title: "Updated Title", artist: original.artist,
+                           artwork: nil, settings: original.settings,
+                           dateAdded: original.dateAdded, fileURL: nil)
+        store.updateSong(updated)
+        XCTAssertEqual(store.queue.first?.title, "Updated Title")
+    }
+
+    func test_updateSong_nonExistentID_isNoop() {
+        let count = store.librarySongs.count
+        let ghost = Song(id: UUID(), title: "Ghost", artist: "Nobody")
+        store.updateSong(ghost)
+        XCTAssertEqual(store.librarySongs.count, count)
+    }
+
+    // MARK: - renamePlaylist
+
+    func test_renamePlaylist_updatesName() {
+        let playlist = store.createPlaylist(name: "Old Name")
+        store.renamePlaylist(id: playlist.id, name: "New Name")
+        let found = store.playlists.first(where: { $0.id == playlist.id })
+        XCTAssertEqual(found?.name, "New Name")
+    }
+
+    func test_renamePlaylist_trims_whitespace() {
+        let playlist = store.createPlaylist(name: "Old")
+        store.renamePlaylist(id: playlist.id, name: "  Trimmed  ")
+        let found = store.playlists.first(where: { $0.id == playlist.id })
+        XCTAssertEqual(found?.name, "Trimmed")
+    }
+
+    func test_renamePlaylist_emptyName_isNoop() {
+        let playlist = store.createPlaylist(name: "Keep This")
+        store.renamePlaylist(id: playlist.id, name: "")
+        let found = store.playlists.first(where: { $0.id == playlist.id })
+        XCTAssertEqual(found?.name, "Keep This")
+    }
+
+    // MARK: - removeSong from playlist
+
+    func test_removeSong_removesSongIDFromPlaylist() {
+        let playlist = store.createPlaylist(name: "Test")
+        let song = store.librarySongs[0]
+        store.addSong(song, to: playlist.id)
+        store.removeSong(songID: song.id, from: playlist.id)
+        XCTAssertFalse(store.playlistSongIDs[playlist.id]?.contains(song.id) ?? false)
+    }
+
+    func test_removeSong_decrementsPlaylistCount() {
+        let playlist = store.createPlaylist(name: "Test")
+        let song = store.librarySongs[0]
+        store.addSong(song, to: playlist.id)
+        store.removeSong(songID: song.id, from: playlist.id)
+        let updated = store.playlists.first(where: { $0.id == playlist.id })!
+        XCTAssertEqual(updated.count, 0)
+    }
+
+    func test_removeSong_fromNonExistentPlaylist_isNoop() {
+        let song = store.librarySongs[0]
+        let fakeID = UUID()
+        // Should not crash
+        store.removeSong(songID: song.id, from: fakeID)
+        XCTAssertNil(store.playlistSongIDs[fakeID])
+    }
+
+    // MARK: - replaceQueue
+
+    func test_replaceQueue_replacesContents() {
+        store.addToQueue(song: store.librarySongs[0])
+        let newSongs = [store.librarySongs[1], store.librarySongs[2]]
+        store.replaceQueue(with: newSongs)
+        XCTAssertEqual(store.queue.count, 2)
+        XCTAssertEqual(store.queue[0].id, newSongs[0].id)
+        XCTAssertEqual(store.queue[1].id, newSongs[1].id)
+    }
+
+    func test_replaceQueue_withEmpty_clearsQueue() {
+        store.addToQueue(song: store.librarySongs[0])
+        store.replaceQueue(with: [])
+        XCTAssertTrue(store.queue.isEmpty)
     }
 }

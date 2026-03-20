@@ -13,7 +13,7 @@ struct JamView: View {
     @State private var blobPhase: Bool = false
     @State private var beatGlowOpacity: Double = 0
 
-    private let coreSize: CGFloat = 136
+    private let coreSize: CGFloat = 200
     private let rippleDuration: Double = 1.9
     private let pulseDuration: Double = 0.12
     private let settleDuration: Double = 0.20
@@ -35,14 +35,15 @@ struct JamView: View {
                 // Center cluster + song info — pinned to exact screen center
                 VStack(spacing: 28) {
                     ZStack {
-                        ForEach(ripples, id: \.self) { rippleID in
-                            JamRippleView(
-                                rippleID: rippleID,
-                                baseSize: coreSize,
-                                maxScale: maxRippleScale,
-                                duration: rippleDuration
-                            )
-                        }
+                        // Ripple rings — commented out, keeping pulse and blur
+//                        ForEach(ripples, id: \.self) { rippleID in
+//                            JamRippleView(
+//                                rippleID: rippleID,
+//                                baseSize: coreSize,
+//                                maxScale: maxRippleScale,
+//                                duration: rippleDuration
+//                            )
+//                        }
 
                         Circle()
                             .fill(Color("AppAccent").opacity(0.25))
@@ -52,7 +53,7 @@ struct JamView: View {
 
                         Circle()
                             .strokeBorder(Color("AppAccent").opacity(0.45), lineWidth: 1)
-                            .frame(width: 124, height: 124)
+                            .frame(width: 184, height: 184)
                             .scaleEffect(pulseScale)
 
                         Image("SoundAlphaV1")
@@ -60,8 +61,8 @@ struct JamView: View {
                             .resizable()
                             .scaledToFit()
                             .foregroundStyle(.primary)
-                            .padding(26)
-                            .frame(width: 112, height: 112)
+                            .padding(36)
+                            .frame(width: 168, height: 168)
                             .scaleEffect(pulseScale)
                     }
 
@@ -80,7 +81,7 @@ struct JamView: View {
                             .foregroundStyle(Color.primary)
                             .padding(.top, 2)
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: 300)
                 }
                 .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
 
@@ -121,12 +122,13 @@ struct JamView: View {
 
     @MainActor
     private func fireBeat() {
-        let id = UUID()
-        ripples.append(id)
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(rippleDuration))
-            ripples.removeAll { $0 == id }
-        }
+        // Ripple spawning commented out — keeping pulse and glow
+//        let id = UUID()
+//        ripples.append(id)
+//        Task { @MainActor in
+//            try? await Task.sleep(for: .seconds(rippleDuration))
+//            ripples.removeAll { $0 == id }
+//        }
 
         withAnimation(.easeOut(duration: pulseDuration)) {
             pulseScale = 1.12

@@ -31,7 +31,6 @@ struct AnthropicClient {
     ) -> AsyncThrowingStream<AnthropicEvent, Error> {
         AsyncThrowingStream { continuation in
             Task {
-                print(Bundle.main.object(forInfoDictionaryKey: "ANTHROPIC_API_KEY") ?? "NOT FOUND")
                 do {
                     guard !SecretsConfig.claudeAPIKey.isEmpty else {
                         throw AnthropicError.missingKey

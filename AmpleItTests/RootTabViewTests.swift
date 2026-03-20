@@ -6,7 +6,10 @@ final class RootTabViewTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        store = LibraryStore()
+        // Use the preview factory to guarantee a deterministic MockData-seeded library
+        // regardless of on-disk state. LibraryStore() alone calls loadFromDisk() which
+        // returns nothing on CI / fresh simulators.
+        store = LibraryStore.preview
     }
 
     override func tearDown() {
@@ -17,7 +20,9 @@ final class RootTabViewTests: XCTestCase {
     // MARK: - AppTab enum
 
     func test_appTab_allCasesCount() {
-        XCTAssertEqual(AppTab.allCases.count, 4)
+        // AppTab has: home, songs, playlists, presets, amp = 5 cases.
+        // Updated from 4 when the "presets" tab was added.
+        XCTAssertEqual(AppTab.allCases.count, 5)
     }
 
     func test_appTab_idEqualsRawValue() {
@@ -38,6 +43,10 @@ final class RootTabViewTests: XCTestCase {
         XCTAssertEqual(AppTab.playlists.title, "Playlists")
     }
 
+    func test_appTab_presetsTitle() {
+        XCTAssertEqual(AppTab.presets.title, "Presets")
+    }
+
     func test_appTab_ampTitle() {
         XCTAssertEqual(AppTab.amp.title, "Amp")
     }
@@ -50,6 +59,13 @@ final class RootTabViewTests: XCTestCase {
     func test_appTab_allHaveUniqueTitles() {
         let titles = AppTab.allCases.map(\.title)
         XCTAssertEqual(Set(titles).count, titles.count)
+    }
+
+    // MARK: - AppTab: presets case
+
+    func test_appTab_presetsCase_exists() {
+        XCTAssertTrue(AppTab.allCases.contains(.presets),
+                      "AppTab.presets was removed — update RootTabView if intentional")
     }
 
     // MARK: - advancePlayback (logic replicated for unit testing)
@@ -143,6 +159,79 @@ final class RootTabViewTests: XCTestCase {
         let songs = store.librarySongs
         let prev = stepBackPlayback(from: songs[songs.count - 1], store: store)
         XCTAssertEqual(prev?.id, songs[songs.count - 2].id)
+    }
+
+    // MARK: - advancePlayback: nowPlayingID nil branch
+
+    /// When `nowPlayingID` is nil (nothing loaded) and the queue is also empty,
+    /// advancePlayback should return nil — not crash and not try to advance from index -1.
+    func test_advancePlayback_withNilCurrentID_emptyQueue_returnsNil() {
+        // Replicate the guard in RootTabView.advancePlayback():
+        // if let queued = store.popQueue() { return queued }
+        // guard let currentID = nowPlayingID, let idx = ... else { return nil }
+        let nowPlayingID: UUID? = nil
+        if let queued = store.popQueue() {
+            // We don't have one — this branch shouldn't fire.
+            XCTFail("Queue was not empty: \(queued)")
+            return
+        }
+        guard let currentID = nowPlayingID,
+              store.librarySongs.firstIndex(where: { $0.id == currentID }) != nil else {
+            // Expected path: returns nil
+            return
+        }
+        XCTFail("Should have returned nil before reaching here")
+    }
+
+    /// When nowPlayingID is nil but the queue has a song, it should pop from the queue.
+    func test_advancePlayback_withNilCurrentID_nonEmptyQueue_popsQueue() {
+        let queued = store.librarySongs[2]
+        store.addToQueue(song: queued)
+        let nowPlayingID: UUID? = nil
+
+        var result: Song? = nil
+        if let q = store.popQueue() {
+            result = q
+        } else if let id = nowPlayingID,
+                  let idx = store.librarySongs.firstIndex(where: { $0.id == id }) {
+            result = store.librarySongs[(idx + 1) % store.librarySongs.count]
+        }
+        XCTAssertEqual(result?.id, queued.id)
+        XCTAssertTrue(store.queue.isEmpty)
+    }
+
+    // MARK: - Deleted now-playing guard (mirrored from RootTabView.onChange)
+
+    func test_deletedNowPlaying_setsNowPlayingIDToNil() {
+        let firstSong = store.librarySongs[0]
+        var nowPlayingID: UUID? = firstSong.id
+        var isSongPlayerPresented = true
+
+        store.delete(songID: firstSong.id)
+        // Mirrors RootTabView.onChange(of: libraryStore.librarySongs.map(\.id))
+        if let currentID = nowPlayingID,
+           !store.librarySongs.contains(where: { $0.id == currentID }) {
+            nowPlayingID = nil
+            isSongPlayerPresented = false
+        }
+
+        XCTAssertNil(nowPlayingID, "nowPlayingID should be nil after its song is deleted")
+        XCTAssertFalse(isSongPlayerPresented, "Full-screen player should be dismissed when now-playing song is deleted")
+    }
+
+    func test_deletedNonPlayingSong_doesNotClearNowPlayingID() {
+        let nowSong  = store.librarySongs[0]
+        let otherSong = store.librarySongs[1]
+        var nowPlayingID: UUID? = nowSong.id
+
+        store.delete(songID: otherSong.id)
+        if let currentID = nowPlayingID,
+           !store.librarySongs.contains(where: { $0.id == currentID }) {
+            nowPlayingID = nil
+        }
+
+        XCTAssertEqual(nowPlayingID, nowSong.id,
+                       "Deleting a different song should not clear nowPlayingID")
     }
 
     // MARK: - nowPlaying initialisation logic

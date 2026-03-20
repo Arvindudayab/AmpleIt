@@ -55,10 +55,16 @@ extension OnboardingPanel {
             tip: "Swipe down anywhere on the player to collapse it back to the mini-player."
         ),
         .init(
+            screenshotImageName: "Onboarding_Jam",
+            title: "Jam Mode",
+            description: "Tap the waveform icon in the player to enter Jam Mode — a full-screen, beat-reactive visual that pulses with the music. See the song title, artist, and detected BPM at a glance.",
+            tip: "Swipe down to close Jam Mode and return to the player."
+        ),
+        .init(
             screenshotImageName: "Onboarding_Amp",
             title: "Meet Amp",
-            description: "Amp is your built-in AI music assistant. Ask for EQ tips, mixing advice, or help finding the right sound for any track.",
-            tip: "Access Amp from the sidebar menu."
+            description: "Amp is your built-in AI music assistant. Ask for EQ tips, creating playlists and queues, or help finding the right sound for any track.",
+            tip: "Access Amp from the sidebar menu or the top right of the home menu."
         ),
     ]
 }
@@ -145,6 +151,16 @@ private struct OnboardingPanelView: View {
     let onGetStarted: () -> Void
     let onImageTap: () -> Void
 
+    @State private var rainbowRotation: Double = 0
+
+    private var rainbowGradient: AngularGradient {
+        AngularGradient(
+            colors: [.red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red],
+            center: .center,
+            angle: .degrees(rainbowRotation)
+        )
+    }
+
     // iPhone screen aspect ratio (portrait)
     private let phoneAspect: CGFloat = 393.0 / 852.0
 
@@ -225,7 +241,10 @@ private struct OnboardingPanelView: View {
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                                         .strokeBorder(Color("AppAccent").opacity(0.55), lineWidth: 1)
+                                        .strokeBorder(rainbowGradient, lineWidth: 1)
                                 )
+                                .shadow(color: .red.opacity(0.25), radius: 8, x: 0, y: 0)
+                                .shadow(color: .blue.opacity(0.2), radius: 12, x: 0, y: 0)
                         }
                         .buttonStyle(.plain)
                         .padding(.top, 10)
@@ -236,6 +255,11 @@ private struct OnboardingPanelView: View {
                 // Room for the TabView page-dot indicator
                 Spacer(minLength: 62)
             }
+        .onAppear {
+            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                rainbowRotation = 360
+            }
+        }
     }
 
     private func screenshotArea(width: CGFloat, height: CGFloat) -> some View {

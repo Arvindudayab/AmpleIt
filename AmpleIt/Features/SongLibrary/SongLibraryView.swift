@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import AVFoundation
 
 struct SongLibraryView: View {
     @Binding var isSidebarOpen: Bool
@@ -388,7 +389,7 @@ struct SongLibraryView: View {
 
         isImporting = true
         Task {
-            let draftSong = buildImportedSongDraft(from: url)
+            let draftSong = await buildImportedSongDraft(from: url)
             await MainActor.run {
                 if hasAccess { url.stopAccessingSecurityScopedResource() }
                 isImporting = false
@@ -397,7 +398,7 @@ struct SongLibraryView: View {
         }
     }
 
-    private func buildImportedSongDraft(from url: URL) -> Song {
+    private func buildImportedSongDraft(from url: URL) async -> Song {
         let songID = UUID()
         let ext = url.pathExtension
         let destURL: URL? = {
@@ -411,10 +412,44 @@ struct SongLibraryView: View {
             try? fm.copyItem(at: url, to: dest)
             return fm.fileExists(atPath: dest.path) ? dest : nil
         }()
+
+        // Read embedded ID3 / MP4 metadata tags
+        var extractedTitle: String? = nil
+        var extractedArtist: String? = nil
+        var artwork: ArtworkAsset? = nil
+
+        let asset = AVAsset(url: url)
+        if let metadata = try? await asset.load(.commonMetadata) {
+            for item in metadata {
+                switch item.commonKey {
+                case .commonKeyTitle:
+                    if let s = try? await item.load(.stringValue) {
+                        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty { extractedTitle = trimmed }
+                    }
+                case .commonKeyArtist:
+                    if let s = try? await item.load(.stringValue) {
+                        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty { extractedArtist = trimmed }
+                    }
+                case .commonKeyArtwork:
+                    if let data = try? await item.load(.dataValue) {
+                        artwork = ArtworkAsset(data: data)
+                    }
+                default:
+                    break
+                }
+            }
+        }
+
+        let title = extractedTitle ?? url.deletingPathExtension().lastPathComponent
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
         return Song(
             id: songID,
-            title: url.deletingPathExtension().lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines),
-            artist: "",
+            title: title,
+            artist: extractedArtist ?? "",
+            artwork: artwork,
             fileURL: destURL
         )
     }

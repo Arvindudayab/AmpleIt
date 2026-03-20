@@ -91,16 +91,6 @@ struct HomeView: View {
                 }
 
                 List {
-                    if !libraryStore.recentlyPlayedSongs.isEmpty {
-                        Section {
-                            ForEach(libraryStore.recentlyPlayedSongs) { song in
-                                songRow(song)
-                            }
-                        } header: {
-                            homeSectionHeader("Recently Played")
-                        }
-                    }
-
                     if !libraryStore.recentlyAddedSongs.isEmpty {
                         Section {
                             ForEach(libraryStore.recentlyAddedSongs) { song in
@@ -108,6 +98,16 @@ struct HomeView: View {
                             }
                         } header: {
                             homeSectionHeader("Recently Added")
+                        }
+                    }
+                    
+                    if !libraryStore.recentlyPlayedSongs.isEmpty {
+                        Section {
+                            ForEach(libraryStore.recentlyPlayedSongs) { song in
+                                songRow(song)
+                            }
+                        } header: {
+                            homeSectionHeader("Recently Played")
                         }
                     }
                 }
